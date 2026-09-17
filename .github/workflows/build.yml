@@ -8,9 +8,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./vlc-segovia-tv-main
 
     steps:
     - name: Descargar repositorio
@@ -22,15 +19,19 @@ jobs:
         distribution: 'zulu'
         java-version: '17'
 
-    - name: Dar permisos a Gradle
-      run: chmod +x gradlew
-
     - name: Compilar APK Debug
-      run: ./gradlew :app:assembleDebug --no-daemon
+      run: |
+        cd vlc-segovia-tv-main
+        if [ -f "gradlew" ]; then
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --no-daemon
+        else
+          gradle :app:assembleDebug --no-daemon
+        fi
 
     - name: Guardar APK
       uses: actions/upload-artifact@v4
       with:
         name: SegoviaTV-APK
-        path: vlc-segovia-tv-main/application/app/build/outputs/apk/debug/*.apk
+        path: vlc-segovia-tv-main/application/app/build/outputs/apk/**/*.apk
         
