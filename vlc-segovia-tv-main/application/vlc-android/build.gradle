@@ -1,5 +1,4 @@
 apply plugin: 'com.android.library'
-apply plugin: 'kotlin-kapt'
 apply plugin: 'com.google.devtools.ksp'
 apply plugin: 'kotlin-parcelize'
 
@@ -152,7 +151,7 @@ task generateSources(type: Jar) {
 
 dependencies {
     devApi "org.videolan.android:libvlc-all:$rootProject.ext.libvlcVersion"
-    devApi project(':medialibrary')
+    devApi "org.videolan.android:medialibrary-all:$rootProject.ext.medialibraryVersion"
     debugApi "org.videolan.android:libvlc-all:$rootProject.ext.libvlcVersion"
     debugApi "org.videolan.android:medialibrary-all:$rootProject.ext.medialibraryVersion"
     releaseApi "org.videolan.android:libvlc-all:$rootProject.ext.libvlcVersion"
@@ -186,7 +185,7 @@ dependencies {
     api 'androidx.gridlayout:gridlayout:1.0.0'
     api "androidx.car.app:app:$rootProject.ext.carVersion"
 
-    ksp ("org.xerial:sqlite-jdbc:jdbcVersion")
+    ksp ("org.xerial:sqlite-jdbc:3.36.0")
     ksp("androidx.room:room-compiler:$rootProject.ext.roomVersion")
 
     api "androidx.paging:paging-runtime-ktx:$rootProject.ext.pagingVersion"
