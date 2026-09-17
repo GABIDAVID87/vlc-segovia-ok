@@ -19,6 +19,10 @@ jobs:
         distribution: 'zulu'
         java-version: '17'
 
+    - name: Crear local.properties
+      run: |
+        echo "sdk.dir=$ANDROID_HOME" > vlc-segovia-tv-main/local.properties
+
     - name: Compilar APK Debug
       run: |
         cd vlc-segovia-tv-main
