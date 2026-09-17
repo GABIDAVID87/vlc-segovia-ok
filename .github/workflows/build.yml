@@ -19,6 +19,11 @@ jobs:
         distribution: 'zulu'
         java-version: '17'
 
+    - name: Configurar Gradle 8.2
+      uses: gradle/actions/setup-gradle@v3
+      with:
+        gradle-version: '8.2'
+
     - name: Crear local.properties
       run: |
         echo "sdk.dir=$ANDROID_HOME" > vlc-segovia-tv-main/local.properties
@@ -26,16 +31,15 @@ jobs:
     - name: Compilar APK Debug
       run: |
         cd vlc-segovia-tv-main
-        if [ -f "gradlew" ]; then
-          chmod +x gradlew
-          ./gradlew :app:assembleDebug --no-daemon
-        else
-          gradle :app:assembleDebug --no-daemon
+        if [ ! -f "gradlew" ]; then
+          gradle wrapper --gradle-version 8.2
         fi
+        chmod +x gradlew
+        ./gradlew assembleDebug --no-daemon
 
     - name: Guardar APK
       uses: actions/upload-artifact@v4
       with:
         name: SegoviaTV-APK
-        path: vlc-segovia-tv-main/application/app/build/outputs/apk/**/*.apk
+        path: vlc-segovia-tv-main/**/build/outputs/apk/**/*.apk
         
