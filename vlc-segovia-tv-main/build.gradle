@@ -20,6 +20,25 @@ plugins {
     id 'com.google.devtools.ksp' version '1.9.24-1.0.20' apply false
 }
 
+subprojects {
+    plugins.withId('com.android.application') {
+        android {
+            buildFeatures {
+                dataBinding = true
+                viewBinding = true
+            }
+        }
+    }
+    plugins.withId('com.android.library') {
+        android {
+            buildFeatures {
+                dataBinding = true
+                viewBinding = true
+            }
+        }
+    }
+}
+
 allprojects {
     repositories {
         google()
@@ -50,10 +69,6 @@ allprojects {
                 compileOptions {
                     sourceCompatibility rootProject.ext.targetJVM
                     targetCompatibility rootProject.ext.targetJVM
-                }
-                buildFeatures {
-                    dataBinding = true
-                    viewBinding = true
                 }
             }
         }
