@@ -1,5 +1,4 @@
 apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
 
 android {
     compileOptions {
@@ -62,11 +61,6 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            kotlin {
-                compilerOptions {
-                    freeCompilerArgs.addAll(['-Xno-param-assertions'])
-                }
-            }
         }
         signedRelease {
             initWith release
@@ -160,6 +154,3 @@ dependencies {
     androidTestImplementation 'com.jraska:falcon:2.2.0'
     androidTestImplementation 'tools.fastlane:screengrab:2.1.0'
 }
-
-
-
