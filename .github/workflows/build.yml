@@ -19,10 +19,10 @@ jobs:
         distribution: 'zulu'
         java-version: '17'
 
-    - name: Configurar Gradle 8.2
+    - name: Configurar Gradle 8.7
       uses: gradle/actions/setup-gradle@v3
       with:
-        gradle-version: '8.2'
+        gradle-version: '8.7'
 
     - name: Crear local.properties
       run: |
@@ -31,9 +31,7 @@ jobs:
     - name: Compilar APK Debug
       run: |
         cd vlc-segovia-tv-main
-        if [ ! -f "gradlew" ]; then
-          gradle wrapper --gradle-version 8.2
-        fi
+        gradle wrapper --gradle-version 8.7
         chmod +x gradlew
         ./gradlew assembleDebug --no-daemon
 
