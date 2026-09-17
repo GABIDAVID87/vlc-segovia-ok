@@ -4,48 +4,26 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-
-    <!-- Fondo negro -->
-    <path
-        android:fillColor="#000000"
-        android:pathData="M0,0 L108,0 L108,108 L0,108 Z" />
-
-    <!-- Círculo amarillo exterior -->
     <path
         android:fillColor="#FFFF00"
-        android:pathData="M54,2 A52,52 0,1 1,54,106 A52,52 0,1 1,54,2" />
-
-    <!-- Círculo negro interior -->
+        android:pathData="M54,5 C81.062,5 103,26.938 103,54 C103,81.062 81.062,103 54,103 C26.938,103 5,81.062 5,54 C5,26.938 26.938,5 54,5 Z" />
     <path
         android:fillColor="#000000"
-        android:pathData="M54,18 A37,37 0,1 1,54,92 A37,37 0,1 1,54,18" />
-
-    <!-- TELEVISOR -->
-    <group android:translateY="5">
-        <!-- Cuerpo de la TV -->
-        <path
-            android:fillColor="#FFFF00"
-            android:pathData="M46,30 L44,32 L46,34 L47,34 L51,38 L51,39 L50,40 L39,40 L37,42 L37,60 L40,62 L52,62 L53,63 L52,65 L45,65 L45,66 L64,66 L64,65 L57,65 L56,63 L57,62 L69,62 L72,60 L72,41 L71,40 L59,40 L58,39 L58,38 L65,32 L64,30 L62,30 L61,31 L61,33 L55,39 L54,39 L48,33 L48,30 Z" />
-
-        <!-- Pantalla negra -->
-        <path
-            android:fillColor="#000000"
-            android:pathData="M39,44 L41,42 L68,42 L70,44 L70,58 L68,60 L41,60 L39,58 Z" />
-
-        <!-- Antena izquierda -->
-        <path
-            android:fillColor="#000000"
-            android:pathData="M47,24 L41,26 L37,24 L39,22 Z" />
-
-        <!-- Antena derecha -->
-        <path
-            android:fillColor="#000000"
-            android:pathData="M61,26 L67,24 L69,22 L71,24 Z" />
-    </group>
-
-    <!-- R blanca -->
+        android:pathData="M54,15 C75.539,15 93,32.461 93,54 C93,75.539 75.539,93 54,93 C32.461,93 15,75.539 15,54 C15,32.461 32.461,15 54,15 Z" />
+    <path
+        android:fillColor="#FFFF00"
+        android:pathData="M52,39 L43,29 L44.7,27.3 L54,37.6 Z" />
+    <path
+        android:fillColor="#FFFF00"
+        android:pathData="M56,39 L65.3,27.3 L67,29 L58,39 Z" />
+    <path
+        android:fillColor="#FFFF00"
+        android:pathData="M46,30 L44,32 L46,34 L47,34 L51,38 L51,39 L50,40 L39,40 L37,42 L37,60 L40,62 L52,62 L53,63 L52,65 L45,65 L45,66 L64,66 L64,65 L57,65 L56,63 L57,62 L69,62 L72,60 L72,41 L71,40 L59,40 L58,39 L58,38 L62,34 L64,34 L66,32 L64,30 L62,30 L61,31 L55,39 L53,39 L48,33 L48,30 Z" />
+    <path
+        android:fillColor="#000000"
+        android:pathData="M39,44 L41,42 L68,42 L70,44 L70,58 L68,60 L41,60 L39,58 Z" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M49,53 L49,47 L56,47 C59,47 61,49 61,51.5 C61,53.3 60,54.6 58.5,55.2 L62,61 L58.5,61 L55.5,55.8 L52.5,55.8 L52.5,61 L49,61 Z M52.5,49.7 L52.5,53.1 L55.5,53.1 C56.8,53.1 57.5,52.4 57.5,51.4 C57.5,50.4 56.8,49.7 55.5,49.7 Z" />
-
+        android:fillType="evenOdd"
+        android:pathData="M48,46.5 L52.5,46.5 C55.4,46.5 57,48 57,50.1 C57,51.8 56.2,52.8 54.7,53.4 L58,57.5 L54.4,57.5 L51.8,54.2 L50.8,54.2 L50.8,57.5 L48,57.5 Z M50.8,48.8 L50.8,52 L52.4,52 C53.8,52 54.4,51.4 54.4,50.4 C54.4,49.4 53.8,48.8 52.4,48.8 Z" />
 </vector>
