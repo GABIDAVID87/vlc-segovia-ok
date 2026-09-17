@@ -51,6 +51,10 @@ allprojects {
                     sourceCompatibility rootProject.ext.targetJVM
                     targetCompatibility rootProject.ext.targetJVM
                 }
+                buildFeatures {
+                    dataBinding = true
+                    viewBinding = true
+                }
             }
         }
     }
