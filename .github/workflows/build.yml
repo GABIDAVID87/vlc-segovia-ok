@@ -33,8 +33,14 @@ jobs:
         cd vlc-segovia-tv-main
         gradle wrapper --gradle-version 8.9
         chmod +x gradlew
-        ./gradlew clean assembleDebug --no-daemon --stacktrace
+        ./gradlew clean :application:tools:bundleDebugAar :application:resources:bundleDebugAar :application:mediadb:bundleDebugAar :application:live-plot-graph:bundleDebugAar assembleDebug --no-daemon --stacktrace
 
+    - name: Guardar APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: SegoviaTV-APK
+        path: vlc-segovia-tv-main/**/build/outputs/apk/**/*.apk
+        
     - name: Guardar APK
       uses: actions/upload-artifact@v4
       with:
