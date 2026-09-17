@@ -1,0 +1,13 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'org.videolan.vlc'
+
+    namespace 'org.videolan.vlc'
+
+    namespace = 'org.videolan.vlc'
+{
+
+
