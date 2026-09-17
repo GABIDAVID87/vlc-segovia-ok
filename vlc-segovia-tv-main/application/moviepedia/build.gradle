@@ -1,9 +1,6 @@
-plugins {
-    id 'com.android.library'
-    id 'kotlin-android'
-    id 'kotlin-kapt'
-    id 'com.google.devtools.ksp'
-}
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-kapt'
+apply plugin: 'com.google.devtools.ksp'
 
 android {
 
@@ -79,5 +76,5 @@ dependencies {
 }
 
 static def getMoviepediaUrl(project) {
-    if (project.hasProperty('moviepedia_api_url')) return project.properties['moviepedia_api_url'] else return  "https://localhost/"
-}
+    if (project.hasProperty('moviepedia_api_url')) return project.properties['moviepedia_api_url'] else return "https://localhost/"
+        }
