@@ -1,4 +1,4 @@
-name: Compilar SEGOVIA TV
+Name: Compilar SEGOVIA TV
 
 on:
   workflow_dispatch:
@@ -19,10 +19,10 @@ jobs:
         distribution: 'zulu'
         java-version: '17'
 
-    - name: Configurar Gradle 8.7
+    - name: Configurar Gradle 8.9
       uses: gradle/actions/setup-gradle@v3
       with:
-        gradle-version: '8.7'
+        gradle-version: '8.9'
 
     - name: Crear local.properties
       run: |
@@ -31,7 +31,7 @@ jobs:
     - name: Compilar APK Debug
       run: |
         cd vlc-segovia-tv-main
-        gradle wrapper --gradle-version 8.7
+        gradle wrapper --gradle-version 8.9
         chmod +x gradlew
         ./gradlew assembleDebug --no-daemon
 
