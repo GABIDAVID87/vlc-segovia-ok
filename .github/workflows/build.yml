@@ -11,7 +11,6 @@ jobs:
     timeout-minutes: 180
 
     steps:
-
       - name: Descargar repositorio
         uses: actions/checkout@v4
         with:
@@ -62,7 +61,6 @@ jobs:
       - name: Instalar Android SDK y NDK
         run: |
           yes | sdkmanager --licenses >/dev/null || true
-
           sdkmanager --install \
             "platform-tools" \
             "platforms;android-36" \
@@ -73,11 +71,9 @@ jobs:
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-
           java -version
           gradle --version
           sdkmanager --version
-
           echo "NDK:"
           ls -la "$ANDROID_HOME/ndk/27.2.12479018"
 
@@ -91,12 +87,9 @@ jobs:
         working-directory: vlc-segovia-tv-main
         run: |
           mkdir -p buildsystem/gradle_version
-
           printf "%s\n" \
             "println 'gradle_version=' + gradle.getGradleVersion()" \
             > buildsystem/gradle_version/build.gradle
-
-          echo "Verificador Gradle creado:"
           cat buildsystem/gradle_version/build.gradle
 
       - name: Preparar permisos
@@ -104,14 +97,17 @@ jobs:
         run: |
           chmod +x buildsystem/compile.sh
 
-      - name: Preparar VLC
+      - name: Descargar y preparar VLC
         working-directory: vlc-segovia-tv-main
         run: |
           set -e
+          echo "======================================"
+          echo "PREPARANDO VLC"
+          echo "======================================"
 
           ANDROID_SDK="$ANDROID_HOME" \
           ANDROID_NDK="$ANDROID_HOME/ndk/27.2.12479018" \
-          ./buildsystem/compile.sh --init -b
+          ./buildsystem/compile.sh --init
 
       - name: Corregir vlc.appdata.xml
         working-directory: vlc-segovia-tv-main
@@ -119,7 +115,7 @@ jobs:
           set -e
 
           echo "======================================"
-          echo "CORRECCIÓN DE VLC APPDATA"
+          echo "CORRIGIENDO VLC APPDATA"
           echo "======================================"
 
           VLC_DIR="libvlcjni/vlc"
@@ -129,24 +125,17 @@ jobs:
           echo "BUILD_DIR=$BUILD_DIR"
 
           echo ""
-          echo "Buscando archivo fuente..."
-
-          find "$VLC_DIR" \
+          echo "Archivos encontrados:"
+          find "$VLC_DIR/share" \
+            -maxdepth 1 \
             -type f \
-            \( -name "vlc.appdata.xml.in.in" -o -name "vlc.appdata.xml.in" -o -name "vlc.appdata.xml" \) \
+            -name "vlc.appdata.xml*" \
             -print || true
 
           echo ""
-          echo "Generando vlc.appdata.xml..."
+          echo "Generando archivo final..."
 
-          if [ -f "$VLC_DIR/share/vlc.appdata.xml.in.in" ]; then
-            sed \
-              -e 's/@PACKAGE_NAME@/VLC media player/g' \
-              -e 's/@PACKAGE_VERSION@/3.0.0/g' \
-              -e 's/@PACKAGE@/vlc/g' \
-              "$VLC_DIR/share/vlc.appdata.xml.in.in" \
-              > "$VLC_DIR/share/vlc.appdata.xml.in"
-          fi
+          mkdir -p "$BUILD_DIR/share"
 
           if [ -f "$BUILD_DIR/share/vlc.appdata.xml.in" ]; then
             cp \
@@ -157,11 +146,6 @@ jobs:
               "$VLC_DIR/share/vlc.appdata.xml.in" \
               "$BUILD_DIR/share/vlc.appdata.xml"
           else
-            echo "No se encontró vlc.appdata.xml.in."
-            echo "Creando archivo vacío para evitar el fallo de instalación."
-
-            mkdir -p "$BUILD_DIR/share"
-
             printf '%s\n' \
               '<?xml version="1.0" encoding="UTF-8"?>' \
               '<component type="desktop-application">' \
@@ -172,17 +156,12 @@ jobs:
           fi
 
           echo ""
-          echo "Archivos resultantes:"
-
-          ls -la \
-            "$VLC_DIR/share/vlc.appdata.xml" \
-            "$VLC_DIR/share/vlc.appdata.xml.in" \
-            "$BUILD_DIR/share/vlc.appdata.xml" \
-            2>/dev/null || true
+          echo "Archivo final:"
+          ls -la "$BUILD_DIR/share/vlc.appdata.xml"
 
           echo ""
           echo "======================================"
-          echo "FIN DE LA CORRECCIÓN"
+          echo "APPDATA CORREGIDO"
           echo "======================================"
 
       - name: Compilar VLC y Segovia TV
@@ -212,37 +191,19 @@ jobs:
             . 2>/dev/null | head -100 || true
 
           echo ""
-          echo "---- ARCHIVOS appdata EN VLC ----"
+          echo "---- ARCHIVOS APPDATA ----"
           find libvlcjni/vlc \
             -type f \
             \( -iname "*appdata*" -o -iname "*appstream*" \) \
             -print 2>/dev/null | head -100 || true
 
           echo ""
-          echo "---- MAKEFILES QUE MENCIONAN appdata ----"
-          grep -Rni \
-            --include='Makefile' \
-            --include='Makefile.in' \
-            --include='Makefile.am' \
-            --include='*.mk' \
-            "appdata" \
-            libvlcjni/vlc 2>/dev/null | head -100 || true
-
-          echo ""
-          echo "---- EXISTENCIA DE ARCHIVOS ----"
-
-          echo "Fuente:"
+          echo "---- EXISTENCIA DEL APPDATA FINAL ----"
           ls -la \
             libvlcjni/vlc/share/vlc.appdata.xml \
             libvlcjni/vlc/share/vlc.appdata.xml.in \
             libvlcjni/vlc/share/vlc.appdata.xml.in.in \
-            2>/dev/null || true
-
-          echo ""
-          echo "Build:"
-          ls -la \
             libvlcjni/vlc/build-android-aarch64-linux-android/share/vlc.appdata.xml \
-            libvlcjni/vlc/build-android-aarch64-linux-android/share/vlc.appdata.xml.in \
             2>/dev/null || true
 
           echo ""
@@ -251,7 +212,7 @@ jobs:
 
           echo ""
           echo "---- ÚLTIMAS 160 LÍNEAS DEL LOG ----"
-          tail -160 compilacion.log || true
+          tail -160 compilacion.log 2>/dev/null || true
 
           echo ""
           echo "=================================================="
@@ -265,7 +226,6 @@ jobs:
           echo "======================================"
           echo "APK ENCONTRADOS"
           echo "======================================"
-
           find . -type f -name "*.apk" -print || true
 
       - name: Guardar APK
