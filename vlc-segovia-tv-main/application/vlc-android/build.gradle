@@ -1,4 +1,5 @@
 apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
 apply plugin: 'com.google.devtools.ksp'
 apply plugin: 'kotlin-parcelize'
 
@@ -7,16 +8,13 @@ def build_revision = providers.exec {
 }.standardOutput.asText.get().trim()
 
 android {
-
     packagingOptions {
         jniLibs {
             pickFirsts += ['**/*.so']
         }
     }
 
-
     defaultConfig {
-
         resValue "string", "build_time", buildTime(project)
         resValue "string", "build_host", hostName(project)
         resValue "string", "build_revision", build_revision
@@ -30,13 +28,8 @@ android {
         buildConfigField 'String', 'VLC_VERSION_NAME', "\"${rootProject.ext.versionName}\""
         buildConfigField 'String[]', 'TRANSLATION_ARRAY', generateTranslation()
         buildConfigField 'int', 'VLC_MAJOR_VERSION', "${rootProject.ext.vlcMajorVersion}"
-
         testInstrumentationRunner "org.videolan.vlc.MultidexTestRunner"
-        // The following argument makes the Android Test Orchestrator run its
-        // "pm clear" command after each test invocation. This command ensures
-        // that the app's state is completely cleared between tests.
         testInstrumentationRunnerArguments clearPackageData: 'true'
-
         vectorDrawables.useSupportLibrary = true
         ndkVersion = rootProject.ext.toolchainNdkVersion
         if (rootProject.ext.tooclchainNdkPath != null)
@@ -96,25 +89,30 @@ android {
         res.srcDirs = ['res']
         assets.srcDirs = ['assets']
     }
+
     sourceSets.debug {
         res.srcDirs = ['flavors/debug/res']
         assets.srcDirs = ['flavors/debug/assets']
     }
+
     sourceSets.dev {
         res.srcDirs = ['flavors/debug/res']
         assets.srcDirs = ['flavors/debug/assets']
     }
+
     sourceSets.test {
         java.srcDirs = ['test', 'test-common']
         assets.srcDirs = ['flavors/debug/assets']
     }
+
     sourceSets.androidTest {
         java.srcDirs = ['androidTest', 'test-common']
         assets.srcDirs = ['flavors/debug/assets']
         assets.srcDirs += files("$projectDir/assets/schemas".toString())
     }
+
     namespace = 'org.videolan.vlc'
-    
+
     buildFeatures {
         dataBinding = true
         viewBinding = true
@@ -130,19 +128,16 @@ def generateTranslation() {
     foundLocales.append("new String[]{\"")
     def emptyList = []
     fileTree("../resources/src/main/res").visit { FileVisitDetails details ->
-        // println 'details: ' + details
         if (details.file.path.endsWith("strings.xml")) {
             def languageCode = details.file.parentFile.name.replaceAll('values-', '').replaceAll('-r', '-')
             languageCode = (languageCode == "values") ? "en" : languageCode
-            // println 'adding ' + languageCode + ' strings'
             emptyList.add(languageCode)
         }
     }
     emptyList.sort()
     foundLocales.append(emptyList.join("\",\""))
     foundLocales.append("\"}")
-    def foundLocalesString = foundLocales.toString()
-    return foundLocalesString
+    return foundLocales.toString()
 }
 
 task generateSources(type: Jar) {
@@ -158,13 +153,12 @@ dependencies {
     releaseApi "org.videolan.android:medialibrary-all:$rootProject.ext.medialibraryVersion"
     signedReleaseApi "org.videolan.android:libvlc-all:$rootProject.ext.libvlcVersion"
     signedReleaseApi "org.videolan.android:medialibrary-all:$rootProject.ext.medialibraryVersion"
+
     api project(':application:tools')
     api project(':application:resources')
     api project(':application:mediadb')
     api project(':application:live-plot-graph')
 
-
-    // AppCompat
     api "androidx.activity:activity-ktx:$rootProject.ext.androidxActivityVersion"
     api "androidx.fragment:fragment-ktx:$rootProject.ext.androidxFragmentVersion"
     api "androidx.recyclerview:recyclerview:$rootProject.ext.androidxRecyclerviewVersion"
@@ -185,18 +179,15 @@ dependencies {
     api 'androidx.gridlayout:gridlayout:1.0.0'
     api "androidx.car.app:app:$rootProject.ext.carVersion"
 
-    ksp ("org.xerial:sqlite-jdbc:3.36.0")
+    ksp("org.xerial:sqlite-jdbc:3.36.0")
     ksp("androidx.room:room-compiler:$rootProject.ext.roomVersion")
 
     api "androidx.paging:paging-runtime-ktx:$rootProject.ext.pagingVersion"
 
-
-    //TV
     api "androidx.leanback:leanback:$rootProject.ext.androidxLeanbackVersion"
     api "androidx.leanback:leanback-preference:$rootProject.ext.androidxLeanbackVersion"
     api "androidx.tvprovider:tvprovider:$rootProject.ext.androidxLeanbackVersion"
 
-    // Kotlin
     api "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
     api "org.jetbrains.kotlinx:kotlinx-coroutines-core:$rootProject.ext.kotlinx_version"
     api "org.jetbrains.kotlinx:kotlinx-coroutines-android:$rootProject.ext.kotlinx_version"
@@ -206,14 +197,12 @@ dependencies {
     implementation "androidx.palette:palette-ktx:1.0.0"
     implementation 'com.jaredrummler:colorpicker:1.1.0'
 
-    // Tests
     androidTestImplementation "androidx.test.espresso:espresso-contrib:$rootProject.espressoVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$rootProject.espressoVersion"
     androidTestImplementation "androidx.test.espresso:espresso-intents:$rootProject.espressoVersion"
     testImplementation "junit:junit:$rootProject.ext.junitVersion"
     androidTestImplementation "androidx.room:room-testing:$rootProject.ext.roomVersion"
     testImplementation "androidx.arch.core:core-testing:$rootProject.ext.archVersion"
-    androidTestImplementation "androidx.arch.core:core-testing:$rootProject.ext.archVersion"
     androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.junitExtVersion"
     androidTestUtil "androidx.test:orchestrator:$rootProject.ext.orchestrator"
     testImplementation "androidx.test:core:$rootProject.ext.testCore"
@@ -232,15 +221,13 @@ dependencies {
         debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.12'
         devImplementation 'com.squareup.leakcanary:leakcanary-android:2.12'
     }
-
 }
-
 
 static def buildTime(project) {
     if (project.hasProperty('forceDeterministic')) {
         def code = new ByteArrayOutputStream()
         project.exec {
-            commandLine 'git', 'show', '--no-patch', '--format=%cd' , '--date=format-local:%Y-%m-%d'
+            commandLine 'git', 'show', '--no-patch', '--format=%cd', '--date=format-local:%Y-%m-%d'
             standardOutput = code
         }
         return code.toString()
@@ -272,10 +259,6 @@ def dav1dVersion() {
     return code
 }
 
-/**
- * Generate a changelog string from the NEWS file
- * @return a string containing the latest changelog entry
- */
 def changelog() {
     def newsFile = new File("NEWS")
     def line, output = "", started = false
