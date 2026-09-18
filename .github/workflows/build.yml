@@ -113,29 +113,72 @@ jobs:
           ANDROID_NDK="$ANDROID_HOME/ndk/27.2.12479018" \
           ./buildsystem/compile.sh -b 2>&1 | tee compilacion.log
 
-      - name: Mostrar error real de compilación
+      - name: Diagnosticar fallo VLC
         if: failure()
         working-directory: vlc-segovia-tv-main
         run: |
           echo ""
-          echo "=============================================="
-          echo "          ERROR REAL DE COMPILACIÓN"
-          echo "=============================================="
+          echo "=================================================="
+          echo "       DIAGNÓSTICO DEL FALLO DE VLC"
+          echo "=================================================="
 
           echo ""
-          echo "---- ERRORES ENCONTRADOS ----"
-
-          grep -Ein \
-            "error:|fatal:|failed|failure|ninja:.*error|meson.*error|undefined reference|cannot find|No such file|not found" \
-            compilacion.log \
-            | tail -80 || true
+          echo "---- REFERENCIAS A vlc.appdata.xml ----"
+          grep -Rni \
+            --exclude-dir=.git \
+            --exclude=compilacion.log \
+            "vlc.appdata.xml" \
+            . 2>/dev/null | head -100 || true
 
           echo ""
-          echo "=============================================="
-          echo "          ÚLTIMAS 120 LÍNEAS"
-          echo "=============================================="
+          echo "---- ARCHIVOS appdata EN VLC ----"
+          find libvlcjni/vlc \
+            -type f \
+            \( -iname "*appdata*" -o -iname "*appstream*" \) \
+            -print 2>/dev/null | head -100 || true
 
-          tail -120 compilacion.log
+          echo ""
+          echo "---- MAKEFILES QUE MENCIONAN appdata ----"
+          grep -Rni \
+            --include='Makefile' \
+            --include='Makefile.in' \
+            --include='Makefile.am' \
+            --include='*.mk' \
+            "appdata" \
+            libvlcjni/vlc 2>/dev/null | head -100 || true
+
+          echo ""
+          echo "---- REFERENCIAS A '../../share/' ----"
+          grep -Rni \
+            --include='Makefile' \
+            --include='Makefile.in' \
+            --include='*.mk' \
+            "../../share/" \
+            libvlcjni/vlc/build-android-aarch64-linux-android 2>/dev/null | head -100 || true
+
+          echo ""
+          echo "---- EXISTENCIA DE ARCHIVOS ----"
+          echo "Fuente:"
+          ls -la libvlcjni/vlc/share/vlc.appdata.xml 2>/dev/null || true
+
+          echo ""
+          echo "Build:"
+          ls -la \
+            libvlcjni/vlc/build-android-aarch64-linux-android/share/vlc.appdata.xml \
+            2>/dev/null || true
+
+          echo ""
+          echo "---- aarch64-linux-android-nm ----"
+          command -v aarch64-linux-android-nm || true
+
+          echo ""
+          echo "---- ÚLTIMAS 160 LÍNEAS DEL LOG ----"
+          tail -160 compilacion.log || true
+
+          echo ""
+          echo "=================================================="
+          echo "       FIN DEL DIAGNÓSTICO"
+          echo "=================================================="
 
       - name: Mostrar APK generado
         if: always()
