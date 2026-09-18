@@ -104,7 +104,88 @@ jobs:
         run: |
           chmod +x buildsystem/compile.sh
 
-      - name: Preparar VLC y compilar
+      - name: Preparar VLC
+        working-directory: vlc-segovia-tv-main
+        run: |
+          set -e
+
+          ANDROID_SDK="$ANDROID_HOME" \
+          ANDROID_NDK="$ANDROID_HOME/ndk/27.2.12479018" \
+          ./buildsystem/compile.sh --init -b
+
+      - name: Corregir vlc.appdata.xml
+        working-directory: vlc-segovia-tv-main
+        run: |
+          set -e
+
+          echo "======================================"
+          echo "CORRECCIÓN DE VLC APPDATA"
+          echo "======================================"
+
+          VLC_DIR="libvlcjni/vlc"
+          BUILD_DIR="$VLC_DIR/build-android-aarch64-linux-android"
+
+          echo "VLC_DIR=$VLC_DIR"
+          echo "BUILD_DIR=$BUILD_DIR"
+
+          echo ""
+          echo "Buscando archivo fuente..."
+
+          find "$VLC_DIR" \
+            -type f \
+            \( -name "vlc.appdata.xml.in.in" -o -name "vlc.appdata.xml.in" -o -name "vlc.appdata.xml" \) \
+            -print || true
+
+          echo ""
+          echo "Generando vlc.appdata.xml..."
+
+          if [ -f "$VLC_DIR/share/vlc.appdata.xml.in.in" ]; then
+            sed \
+              -e 's/@PACKAGE_NAME@/VLC media player/g' \
+              -e 's/@PACKAGE_VERSION@/3.0.0/g' \
+              -e 's/@PACKAGE@/vlc/g' \
+              "$VLC_DIR/share/vlc.appdata.xml.in.in" \
+              > "$VLC_DIR/share/vlc.appdata.xml.in"
+          fi
+
+          if [ -f "$BUILD_DIR/share/vlc.appdata.xml.in" ]; then
+            cp \
+              "$BUILD_DIR/share/vlc.appdata.xml.in" \
+              "$BUILD_DIR/share/vlc.appdata.xml"
+          elif [ -f "$VLC_DIR/share/vlc.appdata.xml.in" ]; then
+            cp \
+              "$VLC_DIR/share/vlc.appdata.xml.in" \
+              "$BUILD_DIR/share/vlc.appdata.xml"
+          else
+            echo "No se encontró vlc.appdata.xml.in."
+            echo "Creando archivo vacío para evitar el fallo de instalación."
+
+            mkdir -p "$BUILD_DIR/share"
+
+            printf '%s\n' \
+              '<?xml version="1.0" encoding="UTF-8"?>' \
+              '<component type="desktop-application">' \
+              '<id>org.videolan.vlc</id>' \
+              '<name>VLC media player</name>' \
+              '</component>' \
+              > "$BUILD_DIR/share/vlc.appdata.xml"
+          fi
+
+          echo ""
+          echo "Archivos resultantes:"
+
+          ls -la \
+            "$VLC_DIR/share/vlc.appdata.xml" \
+            "$VLC_DIR/share/vlc.appdata.xml.in" \
+            "$BUILD_DIR/share/vlc.appdata.xml" \
+            2>/dev/null || true
+
+          echo ""
+          echo "======================================"
+          echo "FIN DE LA CORRECCIÓN"
+          echo "======================================"
+
+      - name: Compilar VLC y Segovia TV
         working-directory: vlc-segovia-tv-main
         run: |
           set -o pipefail
@@ -148,23 +229,20 @@ jobs:
             libvlcjni/vlc 2>/dev/null | head -100 || true
 
           echo ""
-          echo "---- REFERENCIAS A '../../share/' ----"
-          grep -Rni \
-            --include='Makefile' \
-            --include='Makefile.in' \
-            --include='*.mk' \
-            "../../share/" \
-            libvlcjni/vlc/build-android-aarch64-linux-android 2>/dev/null | head -100 || true
-
-          echo ""
           echo "---- EXISTENCIA DE ARCHIVOS ----"
+
           echo "Fuente:"
-          ls -la libvlcjni/vlc/share/vlc.appdata.xml 2>/dev/null || true
+          ls -la \
+            libvlcjni/vlc/share/vlc.appdata.xml \
+            libvlcjni/vlc/share/vlc.appdata.xml.in \
+            libvlcjni/vlc/share/vlc.appdata.xml.in.in \
+            2>/dev/null || true
 
           echo ""
           echo "Build:"
           ls -la \
             libvlcjni/vlc/build-android-aarch64-linux-android/share/vlc.appdata.xml \
+            libvlcjni/vlc/build-android-aarch64-linux-android/share/vlc.appdata.xml.in \
             2>/dev/null || true
 
           echo ""
