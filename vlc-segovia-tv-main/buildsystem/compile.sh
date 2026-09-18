@@ -16,10 +16,6 @@ fail()
     exit 1
 }
 
-# Read the Android Wiki http://wiki.videolan.org/AndroidCompile
-# Setup all that stuff correctly.
-# Get the latest Android SDK Platform or modify numbers in configure.sh and libvlc/default.properties.
-
 RELEASE=0
 RESET=0
 AVLC_CONTRIB_LICENSE=g
@@ -32,13 +28,13 @@ while [ $# -gt 0 ]; do
             echo "  ARM64:   (arm64-v8a|arm64)"
             echo "  X86:     x86, x86_64"
             echo "Use --release to build in release mode"
-            echo "Use --signrelease to build in release mode and sign apk, see vlc-android/build.gradle"
+            echo "Use --signrelease to build in release mode and sign apk"
             echo "Use --reset to reset code from git"
             echo "Use -s to set your keystore file and -p for the password"
             echo "Use -c to get a ChromeOS build"
             echo "Use -l to build only LibVLC"
             echo "Use -ml to build only the medialibrary"
-            echo "Use -b to bypass libvlc source checks (vlc custom sources)"
+            echo "Use -b to bypass libvlc source checks"
             echo "Use -t to use prebuilt contribs for LibVLC"
             echo "Use -m2 to set the maven local repository path to use"
             echo "Use --static-cpp to use the static C++ runtime"
@@ -326,10 +322,8 @@ fi
 # GRADLE #
 ##########
 
-GRADLE_VERSION=9.3.1
-
-# the SHA256 is found in https://gradle.org/release-checksums/
-GRADLE_SHA256=b266d5ff6b90eada6dc3b20cb090e3731302e553a27c5d3e4df1f0d76beaff06
+GRADLE_VERSION=8.2.1
+GRADLE_SHA256=03ec176d388f2aa99defcadc3ac6adf8dd2bce5145a129659537c0874dea5ad1
 GRADLE_URL=https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip
 GRADLE_DOWNLOADED_ZIP=gradle-${GRADLE_VERSION}-bin.zip
 
