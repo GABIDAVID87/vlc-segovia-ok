@@ -77,14 +77,30 @@ jobs:
           echo "ANDROID_SDK=$ANDROID_HOME" >> "$GITHUB_ENV"
           echo "ANDROID_NDK=$ANDROID_HOME/ndk/21.4.7075529" >> "$GITHUB_ENV"
 
-      - name: Crear Gradle Wrapper
-        working-directory: vlc-segovia-tv-main
+      - name: Crear Gradle Wrapper sin evaluar VLC
         run: |
+          rm -rf /tmp/gradle-wrapper
+          mkdir -p /tmp/gradle-wrapper
+          cd /tmp/gradle-wrapper
+
+          printf "rootProject.name='wrapper-generator'\n" > settings.gradle
+          printf "tasks.register('dummy')\n" > build.gradle
+
           gradle wrapper --gradle-version 9.3.1
+
+          cd "$GITHUB_WORKSPACE/vlc-segovia-ok/vlc-segovia-ok/vlc-segovia-tv-main" 2>/dev/null || cd "$GITHUB_WORKSPACE/vlc-segovia-tv-main"
+
+          cp /tmp/gradle-wrapper/gradlew .
+          cp /tmp/gradle-wrapper/gradlew.bat .
+          mkdir -p gradle/wrapper
+          cp /tmp/gradle-wrapper/gradle/wrapper/gradle-wrapper.jar gradle/wrapper/
+          cp /tmp/gradle-wrapper/gradle/wrapper/gradle-wrapper.properties gradle/wrapper/
+
           chmod +x gradlew
-          echo "Gradle Wrapper creado:"
+
+          echo "Gradle Wrapper preparado:"
           ls -la gradlew
-          ./gradlew --version
+          ls -la gradle/wrapper/
 
       - name: Preparar VLC y LibVLCJNI
         working-directory: vlc-segovia-tv-main
