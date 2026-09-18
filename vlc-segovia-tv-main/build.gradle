@@ -1,101 +1,140 @@
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
-
-android {
-    packagingOptions {
-        jniLibs {
-            pickFirsts += ['**/*.so']
-        }
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+buildscript {
+    ext.android_plugin_version = '8.1.4'
+    ext.kotlin_version = '2.2.10'
+    ext.kotlinx_version = '1.7.1'
+    repositories {
+        flatDir dirs: "gradle/plugins"
+        google()
+        mavenCentral()
+        mavenLocal()
     }
-
-    defaultConfig {
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField "String", "APP_ID", "\"${rootProject.ext.appId}\""
-        buildConfigField 'String', 'VLC_OPEN_SUBTITLES_API_KEY', "\"${getOSApiKey(project)}\""
-        vectorDrawables.useSupportLibrary = true
-    }
-
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
-        debug {
-            buildConfigField "String", "APP_ID", "\"${rootProject.ext.appId}.debug\""
-        }
-        dev {
-            initWith debug
-            matchingFallbacks = ['debug']
-        }
-        vlcBundle {
-            initWith release
-            matchingFallbacks = ['release']
-        }
-    }
-
-    sourceSets.main {
-        java.srcDirs = rootProject.ext.vlcMajorVersion == 4 ? ['src', 'vlc4/src'] : ['src', 'vlc3/src']
-    }
-
-    sourceSets.debug {
-        res.srcDirs = ['flavors/debug/res']
-    }
-
-    sourceSets.dev {
-        res.srcDirs = ['flavors/debug/res']
-    }
-
-    namespace = 'org.videolan.resources'
-
-    buildFeatures {
-        buildConfig = true
+    dependencies {
+        classpath "com.android.tools.build:gradle:$android_plugin_version"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'com.vanniktech:gradle-maven-publish-plugin:0.34.0'
     }
 }
 
-static def getOSApiKey(project) {
-    return System.getenv('VLC_OPEN_SUBTITLES_API_KEY') ?: project.properties['vlc_open_subtitles_api_key'] ?: ""
+plugins {
+    id 'com.google.devtools.ksp' version '2.2.10-2.0.2' apply false
 }
 
-dependencies {
-    api "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    api 'androidx.multidex:multidex:2.0.1'
-
-    api "org.jetbrains.kotlinx:kotlinx-coroutines-core:$rootProject.ext.kotlinx_version"
-    api "org.jetbrains.kotlinx:kotlinx-coroutines-android:$rootProject.ext.kotlinx_version"
-
-    api project(':application:tools')
-
-    devApi "org.videolan.android:libvlc-all:$rootProject.ext.libvlcVersion"
-    devApi "org.videolan.android:medialibrary-all:$rootProject.ext.medialibraryVersion"
-
-    debugApi "org.videolan.android:libvlc-all:$rootProject.ext.libvlcVersion"
-    debugApi "org.videolan.android:medialibrary-all:$rootProject.ext.medialibraryVersion"
-
-    releaseApi "org.videolan.android:libvlc-all:$rootProject.ext.libvlcVersion"
-    releaseApi "org.videolan.android:medialibrary-all:$rootProject.ext.medialibraryVersion"
-
-    vlcBundleApi "org.videolan.android:libvlc-all:$rootProject.ext.libvlcVersion"
-    vlcBundleApi "org.videolan.android:medialibrary-all:$rootProject.ext.medialibraryVersion"
-
-    api "com.google.android.material:material:$rootProject.ext.androidxMaterialVersion"
-
-    api "androidx.preference:preference-ktx:$androidxPreferencesVersion"
-    api "androidx.leanback:leanback:$rootProject.ext.androidxLeanbackVersion"
-    api "androidx.leanback:leanback-preference:$rootProject.ext.androidxLeanbackVersion"
-
-    api "com.squareup.okhttp3:okhttp:4.9.3"
-    api 'com.squareup.okhttp3:logging-interceptor:4.9.3'
-    api 'com.github.mrmike:ok2curl:0.8.0'
-    api "com.squareup.retrofit2:retrofit:$rootProject.ext.retrofit"
-    api "com.squareup.retrofit2:converter-moshi:$rootProject.ext.retrofit"
-    api "com.squareup.moshi:moshi-adapters:$rootProject.ext.moshi"
-
-    api "androidx.core:core-ktx:$rootProject.ext.androidxCoreVersion"
-
-    testImplementation "androidx.test:core:$rootProject.ext.testCore"
-    androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.junitExtVersion"
+subprojects {
+    plugins.withId('com.android.application') {
+        android {
+            buildFeatures {
+                dataBinding = true
+                viewBinding = true
+            }
+        }
+    }
+    plugins.withId('com.android.library') {
+        android {
+            buildFeatures {
+                dataBinding = true
+                viewBinding = true
+            }
+        }
+    }
 }
 
-repositories {
-    mavenCentral()
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        mavenLocal()
+    }
+
+    tasks.withType(Javadoc) {
+        options.addStringOption('Xdoclint:none', '-quiet')
+        options.addStringOption('encoding', 'UTF-8')
+    }
+
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlin {
+            compilerOptions {
+                jvmTarget.set(rootProject.ext.targetJVMKotlin)
+                optIn.add("kotlin.RequiresOptIn")
+            }
+        }
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        sourceCompatibility = rootProject.ext.targetJVM.toString()
+        targetCompatibility = rootProject.ext.targetJVM.toString()
+    }
+
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            project.android {
+                compileOptions {
+                    sourceCompatibility rootProject.ext.targetJVM
+                    targetCompatibility rootProject.ext.targetJVM
+                }
+            }
+        }
+    }
+}
+
+ext {
+    appId = "org.videolan.vlc"
+    versionCode = 3070110
+    vlcMajorVersion = project.hasProperty('forceVlc4') && project.getProperty('forceVlc4') ? 4 : 3
+    versionName = vlcMajorVersion == 3 ? '3.7.2 Beta 1' : '4.0.0-preview - ' + versionCode
+    remoteAccessVersion = '0.21.0'
+    libvlcVersion = vlcMajorVersion == 3 ? '3.7.5' : '4.0.0-eap29'
+    medialibraryVersion = '0.13.22' + (vlcMajorVersion == 3 ? '' : '-vlc4')
+
+    targetJVM = JavaVersion.VERSION_1_8
+    targetJVMKotlin = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8
+
+    Properties properties = new Properties()
+    File localPropertiesFile = project.rootProject.file('local.properties')
+    if (localPropertiesFile.exists()) {
+        properties.load(localPropertiesFile.newDataInputStream())
+    }
+
+    toolchainNdkVersion = properties.getProperty('android.ndkFullVersion') ?: (vlcMajorVersion == 3 ? '21.4.7075529' : '28.2.13676358')
+    tooclchainNdkPath = properties.getProperty('android.ndkPath')
+
+    targetSdkVersion = 36
+    compileSdkVersion = 36
+
+    desugarLib = '2.0.4'
+    androidxLegacyVersion = '1.0.0'
+    androidxCoreVersion = '1.12.0'
+    appCompatVersion = '1.6.1'
+    lifecycleVersion = '2.5.1'
+    androidxPreferencesVersion = '1.2.1'
+    androidxActivityVersion = '1.8.2'
+    androidxFragmentVersion = '1.6.2'
+    androidxAnnotationVersion = '1.7.1'
+    androidxRecyclerviewVersion = '1.3.2'
+    androidxLeanbackVersion = '1.0.0'
+    androidxMaterialVersion = '1.11.0'
+    constraintLayoutVersion = '2.1.4'
+    windowVersion = '1.1.0'
+    mediaVersion = '1.6.0'
+    carVersion = '1.7.0-beta03'
+    jdbcVersion = '3.36.0'
+    viewPager2Version = "1.0.0"
+    archVersion = '2.2.0'
+    roomVersion = '2.6.1'
+    pagingVersion = '3.2.1'
+    junitVersion = '4.13.2'
+    junitExtVersion = '1.1.5'
+    mockito = '2.25.0'
+    retrofit = '2.7.1'
+    moshi = '1.8.0'
+    ktorVersion = '2.3.7'
+    powerMock = '2.0.2'
+    espressoVersion = '3.5.1'
+    livedataTest = '1.2.0'
+    robolectric = '4.3.1'
+    mockk = '1.9.3'
+    testRunner = '1.4.0'
+    orchestrator = '1.4.2'
+    testCore = '1.5.0'
+    publishScriptPath = '../../buildsystem/publish.gradle'
 }
