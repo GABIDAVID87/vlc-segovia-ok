@@ -11,6 +11,7 @@ jobs:
     timeout-minutes: 180
 
     steps:
+
       - name: Descargar repositorio
         uses: actions/checkout@v4
         with:
@@ -43,10 +44,10 @@ jobs:
             wget \
             curl
 
-      - name: Configurar Gradle 9.3.1
+      - name: Configurar Gradle 9.2.1
         uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: "9.3.1"
+          gradle-version: "9.2.1"
 
       - name: Configurar Android SDK
         uses: android-actions/setup-android@v3
@@ -56,6 +57,7 @@ jobs:
       - name: Instalar Android SDK y NDK
         run: |
           yes | sdkmanager --licenses >/dev/null || true
+
           sdkmanager --install \
             "platform-tools" \
             "platforms;android-36" \
@@ -66,9 +68,12 @@ jobs:
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+
           java -version
           gradle --version
           sdkmanager --version
+
+          echo "NDK:"
           ls -la "$ANDROID_HOME/ndk/21.4.7075529"
 
       - name: Preparar variables Android
@@ -81,20 +86,26 @@ jobs:
         run: |
           rm -rf /tmp/gradle-wrapper
           mkdir -p /tmp/gradle-wrapper
+
           cd /tmp/gradle-wrapper
 
           printf "rootProject.name='wrapper-generator'\n" > settings.gradle
           printf "tasks.register('dummy')\n" > build.gradle
 
-          gradle wrapper --gradle-version 9.3.1
+          gradle wrapper --gradle-version 9.2.1
 
-          cd "$GITHUB_WORKSPACE/vlc-segovia-ok/vlc-segovia-ok/vlc-segovia-tv-main" 2>/dev/null || cd "$GITHUB_WORKSPACE/vlc-segovia-tv-main"
+          cd "$GITHUB_WORKSPACE/vlc-segovia-tv-main"
 
           cp /tmp/gradle-wrapper/gradlew .
           cp /tmp/gradle-wrapper/gradlew.bat .
+
           mkdir -p gradle/wrapper
-          cp /tmp/gradle-wrapper/gradle/wrapper/gradle-wrapper.jar gradle/wrapper/
-          cp /tmp/gradle-wrapper/gradle/wrapper/gradle-wrapper.properties gradle/wrapper/
+
+          cp /tmp/gradle-wrapper/gradle/wrapper/gradle-wrapper.jar \
+            gradle/wrapper/
+
+          cp /tmp/gradle-wrapper/gradle/wrapper/gradle-wrapper.properties \
+            gradle/wrapper/
 
           chmod +x gradlew
 
@@ -106,6 +117,7 @@ jobs:
         working-directory: vlc-segovia-tv-main
         run: |
           chmod +x buildsystem/compile.sh
+
           ANDROID_SDK="$ANDROID_HOME" \
           ANDROID_NDK="$ANDROID_HOME/ndk/21.4.7075529" \
           ./buildsystem/compile.sh --init -b
@@ -114,6 +126,7 @@ jobs:
         working-directory: vlc-segovia-tv-main
         run: |
           chmod +x buildsystem/compile.sh
+
           ANDROID_SDK="$ANDROID_HOME" \
           ANDROID_NDK="$ANDROID_HOME/ndk/21.4.7075529" \
           ./buildsystem/compile.sh -b
@@ -122,7 +135,10 @@ jobs:
         if: always()
         working-directory: vlc-segovia-tv-main
         run: |
-          echo "APK encontrados:"
+          echo "======================================"
+          echo "APK ENCONTRADOS"
+          echo "======================================"
+
           find . -type f -name "*.apk" -print || true
 
       - name: Guardar APK
