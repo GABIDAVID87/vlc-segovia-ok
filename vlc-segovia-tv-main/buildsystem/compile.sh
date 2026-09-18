@@ -16,6 +16,7 @@ fail()
     exit 1
 }
 
+# Read the Android Wiki http://wiki.videolan.org/AndroidCompile
 RELEASE=0
 RESET=0
 AVLC_CONTRIB_LICENSE=g
@@ -187,6 +188,7 @@ if [ ! -f gradle.properties ]; then
     echo kapt.include.compile.classpath=false >> gradle.properties
     echo keyStoreFile=$KEYSTORE_FILE >> gradle.properties
     echo storealias=$STOREALIAS >> gradle.properties
+
     if [ -z "$PASSWORD_KEYSTORE" ]; then
         echo storepwd=android >> gradle.properties
     fi
@@ -194,72 +196,74 @@ fi
 
 init_local_props() {
     (
-        echo_props() {
-            echo "sdk.dir=$ANDROID_SDK"
-            echo "android.ndkPath=$ANDROID_NDK"
-            NDK_FULL_VERSION=$(grep -o '^Pkg.Revision.*[0-9]*.*' "$ANDROID_NDK/source.properties" | cut -d " " -f 3)
-            echo "android.ndkFullVersion=$NDK_FULL_VERSION"
+    echo_props() {
+        echo "sdk.dir=$ANDROID_SDK"
+        echo "android.ndkPath=$ANDROID_NDK"
 
-            if [ $(command -v cmake) >/dev/null 2>&1 ]; then
-                echo "cmake.dir=$(dirname $(dirname $(command -v cmake)))"
+        NDK_FULL_VERSION=$(grep -o '^Pkg.Revision.*[0-9]*.*' "$ANDROID_NDK/source.properties" | cut -d " " -f 3)
+
+        echo "android.ndkFullVersion=$NDK_FULL_VERSION"
+
+        if [ $(command -v cmake >/dev/null 2>&1) ]; then
+            echo "cmake.dir=$(dirname $(dirname $(command -v cmake)))"
+        fi
+    }
+
+    if [ ! -f "$1" ]; then
+        echo_props > "$1"
+        return 0
+    fi
+
+    make_regex() {
+        echo "$1" | sed -e 's/\([[\^$.*]\)/\\\1/g' -
+    }
+
+    android_sdk_regex=`make_regex "${ANDROID_SDK}"`
+    android_ndk_regex=`make_regex "${ANDROID_NDK}"`
+
+    sdk_line_start="^sdk\.dir="
+    total_sdk_count=`grep -c "${sdk_line_start}" "$1"`
+    good_sdk_count=`grep -c "${sdk_line_start}${android_sdk_regex}\$" "$1"`
+
+    ndk_line_start="^ndk\.dir="
+    total_ndk_count=`grep -c "${ndk_line_start}" "$1"`
+    good_ndk_count=`grep -c "${ndk_line_start}${android_ndk_regex}\$" "$1"`
+
+    if [ "$total_sdk_count" -eq "1" ] && [ "$good_sdk_count" -eq "1" ] \
+    && [ "$total_ndk_count" -eq "1" ] && [ "$good_ndk_count" -eq "1" ]
+    then
+        return 0
+    fi
+
+    if [ "$total_sdk_count" -eq "0" ] && [ "$total_ndk_count" -eq "0" ]; then
+        echo_props >> "$1"
+        return 0
+    fi
+
+    replace_props() {
+        temp_props="$1.tmp"
+
+        while IFS= read -r LINE || [ -n "$LINE" ]; do
+            line_sdk_dir="${LINE#sdk.dir=}"
+            line_ndk_dir="${LINE#android.ndkPath=}"
+            line_ndk_version="${LINE#android.ndkFullVersion=}"
+            line_cmake_dir="${LINE#cmake.dir=}"
+
+            if [ "x$line_sdk_dir" = "x$LINE" ] && \
+               [ "x$line_ndk_dir" = "x$LINE" ] && \
+               [ "x$line_ndk_version" = "x$LINE" ] && \
+               [ "x$line_cmake_dir" = "x$LINE" ]; then
+                echo "$LINE"
             fi
-        }
+        done < "$1" > "$temp_props"
 
-        if [ ! -f "$1" ]; then
-            echo_props > "$1"
-            return 0
-        fi
+        echo_props >> "$temp_props"
+        mv -f -- "$temp_props" "$1"
+    }
 
-        make_regex() {
-            echo "$1" | sed -e 's/\([[\^$.*]\)/\\\1/g' -
-        }
-
-        android_sdk_regex=`make_regex "${ANDROID_SDK}"`
-        android_ndk_regex=`make_regex "${ANDROID_NDK}"`
-
-        sdk_line_start="^sdk\.dir="
-        total_sdk_count=`grep -c "${sdk_line_start}" "$1"`
-        good_sdk_count=`grep -c "${sdk_line_start}${android_sdk_regex}\$" "$1"`
-
-        ndk_line_start="^android\.ndkPath="
-        total_ndk_count=`grep -c "${ndk_line_start}" "$1"`
-        good_ndk_count=`grep -c "${ndk_line_start}${android_ndk_regex}\$" "$1"`
-
-        if [ "$total_sdk_count" -eq "1" ] && [ "$good_sdk_count" -eq "1" ] \
-        && [ "$total_ndk_count" -eq "1" ] && [ "$good_ndk_count" -eq "1" ]
-        then
-            return 0
-        fi
-
-        if [ "$total_sdk_count" -eq "0" ] && [ "$total_ndk_count" -eq "0" ]; then
-            echo_props >> "$1"
-            return 0
-        fi
-
-        replace_props() {
-            temp_props="$1.tmp"
-
-            while IFS= read -r LINE || [ -n "$LINE" ]; do
-                line_sdk_dir="${LINE#sdk.dir=}"
-                line_ndk_dir="${LINE#android.ndkPath=}"
-                line_ndk_version="${LINE#android.ndkFullVersion=}"
-                line_cmake_dir="${LINE#cmake.dir=}"
-
-                if [ "x$line_sdk_dir" = "x$LINE" ] && \
-                   [ "x$line_ndk_dir" = "x$LINE" ] && \
-                   [ "x$line_ndk_version" = "x$LINE" ] && \
-                   [ "x$line_cmake_dir" = "x$LINE" ]; then
-                    echo "$LINE"
-                fi
-            done < "$1" > "$temp_props"
-
-            echo_props >> "$temp_props"
-            mv -f -- "$temp_props" "$1"
-        }
-
-        echo "local.properties: Contains incompatible sdk.dir and/or android.ndkPath properties. Replacing..."
-        replace_props "$1"
-        echo "local.properties: Finished replacing sdk.dir and/or android.ndkPath with current environment variables."
+    echo "local.properties: Contains incompatible sdk.dir and/or android.ndkPath properties. Replacing..."
+    replace_props "$1"
+    echo "local.properties: Finished replacing sdk.dir and/or android.ndkPath with current environment variables."
     )
 }
 
@@ -279,15 +283,15 @@ if [ "$FORCE_VLC_4" = 1 ]; then
     gradle_prop="-PforceVlc4=true"
 fi
 
-####################
-# Fetch libVLCjni source #
-####################
+############################
+# Fetch libVLCjni source   #
+############################
 
 if [ "$FORCE_VLC_4" = 1 ]; then
-    LIBVLCJNI_TESTED_HASH=a8d53a9151d7e4a9a5dfd0a5eb1cd92669afdc21
+    LIBVLCJNI_TESTED_HASH=ce3b7bec0738ae4d2a9721388b789bd23a733c2a
     LIBVLCJNI_BRANCH="master"
 else
-    LIBVLCJNI_TESTED_HASH=81bb02ba48dcad32550e0626139a387b3c30af04
+    LIBVLCJNI_TESTED_HASH=7dea540bd34e56bb6510fb06ea4abdbebd2f1a0a
     LIBVLCJNI_BRANCH="libvlcjni-3.x"
 fi
 
@@ -322,8 +326,12 @@ fi
 # GRADLE #
 ##########
 
-GRADLE_VERSION=8.2.1
-GRADLE_SHA256=03ec176d388f2aa99defcadc3ac6adf8dd2bce5145a129659537c0874dea5ad1
+# Gradle usado para la compilación
+GRADLE_VERSION=8.7
+
+# SHA256 oficial de Gradle 8.7
+GRADLE_SHA256=544c35d6bd849ae8a5ed0bcea39ba677dc40f49df7d1835561582da2009b961d
+
 GRADLE_URL=https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip
 GRADLE_DOWNLOADED_ZIP=gradle-${GRADLE_VERSION}-bin.zip
 
@@ -439,7 +447,7 @@ if [ "$NO_ML" != 1 ]; then
 
     buildsystem/compile-medialibrary.sh ${medialig_args}
 
-    cp -a medialibrary/jni/libs/${ANDROID_ABI}/*.so "${OUT_DBG_DIR}"
+    cp -a medialibrary/jni/obj/local/${ANDROID_ABI}/*.so "${OUT_DBG_DIR}"
 fi
 
 ##################
@@ -469,27 +477,22 @@ if [ -n "$M2_REPO" ]; then
 fi
 
 if [ "$BUILD_LIBVLC" = 1 ]; then
-
-    GRADLE_ABI=$GRADLE_ABI ./gradlew \
-        ${gradle_prop} \
+    GRADLE_ABI=$GRADLE_ABI ./gradlew ${gradle_prop} \
         --project-dir ${VLC_LIBJNI_PATH}/libvlc \
         $GRADLE_TASK
 
     RUN=0
 
 elif [ "$BUILD_MEDIALIB" = 1 ]; then
-
     gradle_prop="$gradle_prop -PvlcLibVariant=$GRADLE_ABI"
 
-    ./gradlew \
-        ${gradle_prop} \
+    ./gradlew ${gradle_prop} \
         --project-dir medialibrary \
         $GRADLE_TASK
 
     RUN=0
 
 else
-
     ./gradlew ${gradle_prop} $GRADLE_TASK
 
     if [ "$BUILDTYPE" = "Release" ] && [ "$ACTION" = "assemble" ]; then
@@ -497,12 +500,11 @@ else
     fi
 
     if [ "$TEST" = 1 ]; then
-
-        ./gradlew \
-            ${gradle_prop} \
+        ./gradlew ${gradle_prop} \
             "application:vlc-android:install${BUILDTYPE}AndroidTest"
 
         echo -e "\n===================================\nRun following for UI tests:"
+
         echo "adb shell am instrument -w -m -e clearPackageData true -e package org.videolan.vlc -e debug false org.videolan.vlc.debug.test/org.videolan.vlc.MultidexTestRunner 1> result_UI_test.txt"
     fi
 fi
@@ -516,7 +518,6 @@ fi
 #######
 
 if [ "$RUN" = 1 ]; then
-
     export PATH="${ANDROID_SDK}/platform-tools/:$PATH"
 
     if [ "$STUB" = 1 ]; then
