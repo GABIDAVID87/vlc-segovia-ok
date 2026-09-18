@@ -1,55 +1,94 @@
-name: Compilar SEGOVIA TV
+name: Compilar SEGOVIA TV + VLC
 
 on:
   workflow_dispatch:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
 
     steps:
-    - name: Descargar repositorio
-      uses: actions/checkout@v4
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-    - name: Configurar Java 17
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'zulu'
-        java-version: '17'
+      - name: Configurar Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
 
-    - name: Configurar Gradle 8.9
-      uses: gradle/actions/setup-gradle@v3
-      with:
-        gradle-version: '8.9'
+      - name: Instalar dependencias de compilación
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            automake \
+            autopoint \
+            cmake \
+            build-essential \
+            libtool-bin \
+            patch \
+            pkg-config \
+            protobuf-compiler \
+            ragel \
+            subversion \
+            unzip \
+            git \
+            flex \
+            python3 \
+            wget \
+            curl
 
-    - name: Crear local.properties
-      run: |
-        echo "sdk.dir=$ANDROID_HOME" > vlc-segovia-tv-main/local.properties
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v3
 
-    - name: Compilar APK Debug
-      run: |
-        cd vlc-segovia-tv-main
-        gradle wrapper --gradle-version 8.9
-        chmod +x gradlew
-        ./gradlew clean :application:tools:bundleDebugAar :application:resources:bundleDebugAar :application:mediadb:bundleDebugAar :application:live-plot-graph:bundleDebugAar assembleDebug --no-daemon --stacktrace
+      - name: Instalar Android SDK y NDK
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "ndk;21.4.7075529"
 
-    - name: Guardar APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: SegoviaTV-APK
-        path: vlc-segovia-tv-main/**/build/outputs/apk/**/*.apk
-        
-    - name: Guardar APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: SegoviaTV-APK
-        path: vlc-segovia-tv-main/**/build/outputs/apk/**/*.apk
-        
-    - name: Guardar APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: SegoviaTV-APK
-        path: vlc-segovia-tv-main/**/build/outputs/apk/**/*.apk
-        
+      - name: Preparar variables Android
+        working-directory: vlc-segovia-tv-main
+        run: |
+          echo "ANDROID_SDK=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK=$ANDROID_HOME/ndk/21.4.7075529" >> "$GITHUB_ENV"
+
+      - name: Preparar VLC y LibVLCJNI
+        working-directory: vlc-segovia-tv-main
+        run: |
+          chmod +x buildsystem/compile.sh
+          ANDROID_SDK="$ANDROID_HOME" \
+          ANDROID_NDK="$ANDROID_HOME/ndk/21.4.7075529" \
+          ./buildsystem/compile.sh --init -b
+
+      - name: Compilar Segovia TV + VLC
+        working-directory: vlc-segovia-tv-main
+        run: |
+          chmod +x buildsystem/compile.sh
+          ANDROID_SDK="$ANDROID_HOME" \
+          ANDROID_NDK="$ANDROID_HOME/ndk/21.4.7075529" \
+          ./buildsystem/compile.sh -b
+
+      - name: Mostrar APK generado
+        if: always()
+        working-directory: vlc-segovia-tv-main
+        run: |
+          echo "APK encontrados:"
+          find . -type f -name "*.apk" -print || true
+
+      - name: Guardar APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VLC-Segovia-TV-debug
+          path: |
+            vlc-segovia-tv-main/application/app/build/outputs/apk/**/*.apk
+            vlc-segovia-tv-main/application/vlc-android/build/outputs/apk/**/*.apk
+          if-no-files-found: error
