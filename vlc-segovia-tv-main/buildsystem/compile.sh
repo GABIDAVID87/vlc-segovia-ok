@@ -16,7 +16,6 @@ fail()
     exit 1
 }
 
-# Read the Android Wiki http://wiki.videolan.org/AndroidCompile
 RELEASE=0
 RESET=0
 AVLC_CONTRIB_LICENSE=g
@@ -326,10 +325,7 @@ fi
 # GRADLE #
 ##########
 
-# Gradle usado para la compilación
 GRADLE_VERSION=8.7
-
-# SHA256 oficial de Gradle 8.7
 GRADLE_SHA256=544c35d6bd849ae8a5ed0bcea39ba677dc40f49df7d1835561582da2009b961d
 
 GRADLE_URL=https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip
@@ -447,7 +443,30 @@ if [ "$NO_ML" != 1 ]; then
 
     buildsystem/compile-medialibrary.sh ${medialig_args}
 
-    cp -a medialibrary/jni/obj/local/${ANDROID_ABI}/*.so "${OUT_DBG_DIR}"
+    MEDIALIBRARY_LIB_DIR="medialibrary/jni/libs/${ANDROID_ABI}"
+
+    if [ -d "$MEDIALIBRARY_LIB_DIR" ] && ls "$MEDIALIBRARY_LIB_DIR"/*.so >/dev/null 2>&1; then
+        echo "MediaLibrary libraries found in $MEDIALIBRARY_LIB_DIR"
+        cp -a "$MEDIALIBRARY_LIB_DIR"/*.so "${OUT_DBG_DIR}"
+    else
+        echo "MediaLibrary libraries not found in $MEDIALIBRARY_LIB_DIR"
+        echo "Searching for generated .so files..."
+
+        MEDIALIBRARY_FOUND=$(find medialibrary \
+            -type f \
+            -name "*.so" \
+            -path "*/${ANDROID_ABI}/*" \
+            2>/dev/null | head -20)
+
+        if [ -n "$MEDIALIBRARY_FOUND" ]; then
+            echo "$MEDIALIBRARY_FOUND"
+            echo "$MEDIALIBRARY_FOUND" | while IFS= read -r LIB; do
+                cp -a "$LIB" "${OUT_DBG_DIR}"
+            done
+        else
+            fail "MediaLibrary build completed but no .so libraries were found"
+        fi
+    fi
 fi
 
 ##################
