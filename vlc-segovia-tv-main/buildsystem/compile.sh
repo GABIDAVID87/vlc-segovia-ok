@@ -26,7 +26,7 @@ while [ $# -gt 0 ]; do
             echo "Use -a to set the ARCH:"
             echo "  ARM:     (armeabi-v7a|arm)"
             echo "  ARM64:   (arm64-v8a|arm64)"
-            echo "  X86:     x86, x86_64"
+            echo "  X86:      x86, x86_64"
             echo "Use --release to build in release mode"
             echo "Use --signrelease to build in release mode and sign apk"
             echo "Use --reset to reset code from git"
@@ -325,8 +325,8 @@ fi
 # GRADLE #
 ##########
 
-GRADLE_VERSION=8.7
-GRADLE_SHA256=544c35d6bd849ae8a5ed0bcea39ba677dc40f49df7d1835561582da2009b961d
+GRADLE_VERSION=8.11.1
+GRADLE_SHA256=f397b287023acdba1e9f6fc5ea72d22dd63669d59ed4a289a29b1a76eee151c6
 
 GRADLE_URL=https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip
 GRADLE_DOWNLOADED_ZIP=gradle-${GRADLE_VERSION}-bin.zip
