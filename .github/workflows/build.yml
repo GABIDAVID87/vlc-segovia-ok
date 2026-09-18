@@ -49,10 +49,10 @@ jobs:
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
 
-      - name: Configurar Gradle 8.7
+      - name: Configurar Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: "8.7"
+          gradle-version: "8.11.1"
 
       - name: Configurar Android SDK
         uses: android-actions/setup-android@v3
