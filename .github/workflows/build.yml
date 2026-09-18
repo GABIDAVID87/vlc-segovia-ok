@@ -67,7 +67,7 @@ jobs:
             "platform-tools" \
             "platforms;android-36" \
             "build-tools;36.0.0" \
-            "ndk;21.4.7075529"
+            "ndk;27.2.12479018"
 
       - name: Verificar herramientas Android
         run: |
@@ -79,13 +79,13 @@ jobs:
           sdkmanager --version
 
           echo "NDK:"
-          ls -la "$ANDROID_HOME/ndk/21.4.7075529"
+          ls -la "$ANDROID_HOME/ndk/27.2.12479018"
 
       - name: Preparar variables Android
         working-directory: vlc-segovia-tv-main
         run: |
           echo "ANDROID_SDK=$ANDROID_HOME" >> "$GITHUB_ENV"
-          echo "ANDROID_NDK=$ANDROID_HOME/ndk/21.4.7075529" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK=$ANDROID_HOME/ndk/27.2.12479018" >> "$GITHUB_ENV"
 
       - name: Preparar verificador de versión de Gradle
         working-directory: vlc-segovia-tv-main
@@ -108,7 +108,7 @@ jobs:
         working-directory: vlc-segovia-tv-main
         run: |
           ANDROID_SDK="$ANDROID_HOME" \
-          ANDROID_NDK="$ANDROID_HOME/ndk/21.4.7075529" \
+          ANDROID_NDK="$ANDROID_HOME/ndk/27.2.12479018" \
           ./buildsystem/compile.sh -b
 
       - name: Mostrar APK generado
