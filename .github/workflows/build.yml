@@ -107,9 +107,35 @@ jobs:
       - name: Preparar VLC y compilar
         working-directory: vlc-segovia-tv-main
         run: |
+          set -o pipefail
+
           ANDROID_SDK="$ANDROID_HOME" \
           ANDROID_NDK="$ANDROID_HOME/ndk/27.2.12479018" \
-          ./buildsystem/compile.sh -b
+          ./buildsystem/compile.sh -b 2>&1 | tee compilacion.log
+
+      - name: Mostrar error real de compilación
+        if: failure()
+        working-directory: vlc-segovia-tv-main
+        run: |
+          echo ""
+          echo "=============================================="
+          echo "          ERROR REAL DE COMPILACIÓN"
+          echo "=============================================="
+
+          echo ""
+          echo "---- ERRORES ENCONTRADOS ----"
+
+          grep -Ein \
+            "error:|fatal:|failed|failure|ninja:.*error|meson.*error|undefined reference|cannot find|No such file|not found" \
+            compilacion.log \
+            | tail -80 || true
+
+          echo ""
+          echo "=============================================="
+          echo "          ÚLTIMAS 120 LÍNEAS"
+          echo "=============================================="
+
+          tail -120 compilacion.log
 
       - name: Mostrar APK generado
         if: always()
