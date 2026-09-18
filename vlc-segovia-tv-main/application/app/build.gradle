@@ -126,10 +126,8 @@ dependencies {
     implementation project(':application:vlc-android')
     implementation project(':application:television')
     implementation project(':application:remote-access-server')
-    implementation project(':application:segovia')
     testImplementation project(':application:television')
     testImplementation project(':application:remote-access-server')
-
     androidTestImplementation "androidx.test.espresso:espresso-contrib:$rootProject.espressoVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$rootProject.espressoVersion"
     androidTestImplementation "androidx.test.espresso:espresso-intents:$rootProject.espressoVersion"
