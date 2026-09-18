@@ -44,10 +44,10 @@ jobs:
             wget \
             curl
 
-      - name: Configurar Gradle 8.2.1
+      - name: Configurar Gradle 8.7
         uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: "8.2.1"
+          gradle-version: "8.7"
 
       - name: Configurar Android SDK
         uses: android-actions/setup-android@v3
