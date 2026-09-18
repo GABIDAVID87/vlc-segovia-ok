@@ -11,6 +11,7 @@ jobs:
     timeout-minutes: 180
 
     steps:
+
       - name: Descargar repositorio
         uses: actions/checkout@v4
         with:
@@ -61,6 +62,7 @@ jobs:
       - name: Instalar Android SDK y NDK
         run: |
           yes | sdkmanager --licenses >/dev/null || true
+
           sdkmanager --install \
             "platform-tools" \
             "platforms;android-36" \
@@ -69,11 +71,20 @@ jobs:
 
       - name: Verificar herramientas Android
         run: |
+          echo "======================================"
+          echo "HERRAMIENTAS ANDROID"
+          echo "======================================"
+
           echo "ANDROID_HOME=$ANDROID_HOME"
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+
           java -version
+          echo ""
           gradle --version
+          echo ""
           sdkmanager --version
+
+          echo ""
           echo "NDK:"
           ls -la "$ANDROID_HOME/ndk/27.2.12479018"
 
@@ -87,9 +98,12 @@ jobs:
         working-directory: vlc-segovia-tv-main
         run: |
           mkdir -p buildsystem/gradle_version
+
           printf "%s\n" \
             "println 'gradle_version=' + gradle.getGradleVersion()" \
             > buildsystem/gradle_version/build.gradle
+
+          echo "Verificador Gradle:"
           cat buildsystem/gradle_version/build.gradle
 
       - name: Preparar permisos
@@ -101,8 +115,9 @@ jobs:
         working-directory: vlc-segovia-tv-main
         run: |
           set -e
+
           echo "======================================"
-          echo "PREPARANDO VLC"
+          echo "DESCARGANDO Y PREPARANDO VLC"
           echo "======================================"
 
           ANDROID_SDK="$ANDROID_HOME" \
@@ -125,7 +140,8 @@ jobs:
           echo "BUILD_DIR=$BUILD_DIR"
 
           echo ""
-          echo "Archivos encontrados:"
+          echo "---- ARCHIVOS APPDATA EN FUENTE ----"
+
           find "$VLC_DIR/share" \
             -maxdepth 1 \
             -type f \
@@ -133,19 +149,24 @@ jobs:
             -print || true
 
           echo ""
-          echo "Generando archivo final..."
+          echo "---- CREANDO APPDATA FINAL ----"
 
           mkdir -p "$BUILD_DIR/share"
 
           if [ -f "$BUILD_DIR/share/vlc.appdata.xml.in" ]; then
+
             cp \
               "$BUILD_DIR/share/vlc.appdata.xml.in" \
               "$BUILD_DIR/share/vlc.appdata.xml"
+
           elif [ -f "$VLC_DIR/share/vlc.appdata.xml.in" ]; then
+
             cp \
               "$VLC_DIR/share/vlc.appdata.xml.in" \
               "$BUILD_DIR/share/vlc.appdata.xml"
+
           else
+
             printf '%s\n' \
               '<?xml version="1.0" encoding="UTF-8"?>' \
               '<component type="desktop-application">' \
@@ -153,11 +174,14 @@ jobs:
               '<name>VLC media player</name>' \
               '</component>' \
               > "$BUILD_DIR/share/vlc.appdata.xml"
+
           fi
 
           echo ""
-          echo "Archivo final:"
-          ls -la "$BUILD_DIR/share/vlc.appdata.xml"
+          echo "---- APPDATA FINAL ----"
+
+          ls -la \
+            "$BUILD_DIR/share/vlc.appdata.xml"
 
           echo ""
           echo "======================================"
@@ -169,55 +193,253 @@ jobs:
         run: |
           set -o pipefail
 
+          echo "======================================"
+          echo "COMPILANDO VLC + SEGOVIA TV"
+          echo "======================================"
+
           ANDROID_SDK="$ANDROID_HOME" \
           ANDROID_NDK="$ANDROID_HOME/ndk/27.2.12479018" \
           ./buildsystem/compile.sh -b 2>&1 | tee compilacion.log
 
-      - name: Diagnosticar fallo VLC
+      - name: Diagnóstico completo del fallo
         if: failure()
         working-directory: vlc-segovia-tv-main
         run: |
           echo ""
-          echo "=================================================="
-          echo "       DIAGNÓSTICO DEL FALLO DE VLC"
-          echo "=================================================="
+          echo "##################################################"
+          echo "#                                                #"
+          echo "#       DIAGNÓSTICO COMPLETO DE COMPILACIÓN     #"
+          echo "#                                                #"
+          echo "##################################################"
 
           echo ""
-          echo "---- REFERENCIAS A vlc.appdata.xml ----"
-          grep -Rni \
-            --exclude-dir=.git \
-            --exclude=compilacion.log \
-            "vlc.appdata.xml" \
-            . 2>/dev/null | head -100 || true
+          echo "=================================================="
+          echo "1. INFORMACIÓN DE LA EJECUCIÓN"
+          echo "=================================================="
+
+          date
+          echo ""
+          echo "Directorio actual:"
+          pwd
 
           echo ""
-          echo "---- ARCHIVOS APPDATA ----"
+          echo "Contenido principal:"
+          ls -la | head -100
+
+          echo ""
+          echo "=================================================="
+          echo "2. EXISTENCIA DEL LOG"
+          echo "=================================================="
+
+          if [ -f compilacion.log ]; then
+            echo "OK: compilacion.log existe"
+            echo "Tamaño:"
+            wc -l compilacion.log
+            ls -lh compilacion.log
+          else
+            echo "ATENCIÓN: compilacion.log NO existe"
+          fi
+
+          echo ""
+          echo "=================================================="
+          echo "3. ERRORES GENERALES"
+          echo "=================================================="
+
+          if [ -f compilacion.log ]; then
+            grep -Ein \
+              "error:|error |^error|ERROR:|ERROR |FAILED|failed|fatal|FATAL|undefined reference|No such file|not found|cannot |Could not|Exception|FAILURE|exit code|returned non-zero" \
+              compilacion.log \
+              | tail -250 || true
+          fi
+
+          echo ""
+          echo "=================================================="
+          echo "4. ERRORES DE VLC"
+          echo "=================================================="
+
+          if [ -f compilacion.log ]; then
+            grep -Ein \
+              "libvlcjni|/vlc/|vlc-|vlc\.appdata|configure:|make(\[[0-9]+\])?:|libtool:|contrib|modules/" \
+              compilacion.log \
+              | grep -Ei \
+              "error|failed|fatal|not found|cannot|undefined|No such file|Could not|FAILURE|FAILED" \
+              | tail -250 || true
+          fi
+
+          echo ""
+          echo "=================================================="
+          echo "5. ERRORES DE SEGOVIA TV"
+          echo "=================================================="
+
+          if [ -f compilacion.log ]; then
+            grep -Ein \
+              "application/segovia|com\.segovia|Segovia|segovia" \
+              compilacion.log \
+              | grep -Ei \
+              "error|failed|fatal|not found|cannot|undefined|No such file|Could not|FAILURE|FAILED" \
+              | tail -250 || true
+          fi
+
+          echo ""
+          echo "=================================================="
+          echo "6. ÚLTIMAS 500 LÍNEAS DEL LOG"
+          echo "=================================================="
+
+          if [ -f compilacion.log ]; then
+            tail -500 compilacion.log
+          else
+            echo "No existe compilacion.log"
+          fi
+
+          echo ""
+          echo "=================================================="
+          echo "7. ÚLTIMAS LÍNEAS CON ERROR/FAILED"
+          echo "=================================================="
+
+          if [ -f compilacion.log ]; then
+            grep -Ein \
+              "error|failed|fatal|not found|cannot|undefined|No such file|Could not|FAILURE|FAILED" \
+              compilacion.log \
+              | tail -100 || true
+          fi
+
+          echo ""
+          echo "=================================================="
+          echo "8. CONTEXTO DE LOS ERRORES"
+          echo "=================================================="
+
+          if [ -f compilacion.log ]; then
+            grep -Ein \
+              "error:|ERROR:|FAILED|failed|fatal|FATAL|undefined reference|No such file|not found|cannot |Could not|Exception|FAILURE" \
+              compilacion.log \
+              | tail -30 \
+              | cut -d: -f1 \
+              | while read -r line; do
+                  if [ -n "$line" ]; then
+                    start=$((line-8))
+                    [ "$start" -lt 1 ] && start=1
+                    end=$((line+12))
+                    echo ""
+                    echo "---------------- CONTEXTO línea $line ----------------"
+                    sed -n "${start},${end}p" compilacion.log
+                  fi
+                done
+          fi
+
+          echo ""
+          echo "=================================================="
+          echo "9. APPDATA VLC"
+          echo "=================================================="
+
           find libvlcjni/vlc \
             -type f \
-            \( -iname "*appdata*" -o -iname "*appstream*" \) \
-            -print 2>/dev/null | head -100 || true
+            \( \
+              -iname "*appdata*" \
+              -o \
+              -iname "*appstream*" \
+            \) \
+            -print 2>/dev/null \
+            | head -150 || true
 
           echo ""
-          echo "---- EXISTENCIA DEL APPDATA FINAL ----"
+          echo "---- APPDATA FINAL ----"
+
           ls -la \
             libvlcjni/vlc/share/vlc.appdata.xml \
             libvlcjni/vlc/share/vlc.appdata.xml.in \
             libvlcjni/vlc/share/vlc.appdata.xml.in.in \
             libvlcjni/vlc/build-android-aarch64-linux-android/share/vlc.appdata.xml \
+            libvlcjni/vlc/build-android-aarch64-linux-android/share/vlc.appdata.xml.in \
+            libvlcjni/vlc/build-android-aarch64-linux-android/install/share/metainfo/vlc.appdata.xml \
             2>/dev/null || true
 
           echo ""
-          echo "---- aarch64-linux-android-nm ----"
+          echo "=================================================="
+          echo "10. HERRAMIENTAS DEL NDK"
+          echo "=================================================="
+
+          echo "ANDROID_NDK=$ANDROID_NDK"
+
+          echo ""
+          echo "aarch64-linux-android-nm:"
           command -v aarch64-linux-android-nm || true
 
           echo ""
-          echo "---- ÚLTIMAS 160 LÍNEAS DEL LOG ----"
-          tail -160 compilacion.log 2>/dev/null || true
+          echo "Todos los nm disponibles:"
+          find "$ANDROID_HOME/ndk/27.2.12479018" \
+            -type f \
+            \( \
+              -name "aarch64-linux-android-nm" \
+              -o \
+              -name "llvm-nm" \
+            \) \
+            -print 2>/dev/null | head -50 || true
 
           echo ""
           echo "=================================================="
-          echo "       FIN DEL DIAGNÓSTICO"
+          echo "11. ESTADO DEL BUILD VLC"
           echo "=================================================="
+
+          if [ -d libvlcjni/vlc/build-android-aarch64-linux-android ]; then
+            echo "Build VLC existe."
+
+            echo ""
+            echo "Últimos archivos modificados:"
+            find libvlcjni/vlc/build-android-aarch64-linux-android \
+              -type f \
+              -printf '%T@ %p\n' \
+              2>/dev/null \
+              | sort -n \
+              | tail -50 || true
+          else
+            echo "No existe el directorio de build de VLC."
+          fi
+
+          echo ""
+          echo "=================================================="
+          echo "12. ESTADO DE SEGOVIA TV"
+          echo "=================================================="
+
+          echo ""
+          echo "Archivos Kotlin de Segovia:"
+          find application/segovia \
+            -type f \
+            \( -name "*.kt" -o -name "*.java" \) \
+            -print 2>/dev/null \
+            | head -150 || true
+
+          echo ""
+          echo "Archivos Gradle de Segovia:"
+          find application/segovia \
+            -type f \
+            \( -name "build.gradle" -o -name "build.gradle.kts" \) \
+            -print 2>/dev/null || true
+
+          echo ""
+          echo "=================================================="
+          echo "13. APK ENCONTRADOS AUNQUE EL BUILD HAYA FALLADO"
+          echo "=================================================="
+
+          find . \
+            -type f \
+            -name "*.apk" \
+            -print 2>/dev/null || true
+
+          echo ""
+          echo "=================================================="
+          echo "14. ÚLTIMA INFORMACIÓN DEL PROCESO"
+          echo "=================================================="
+
+          if [ -f compilacion.log ]; then
+            echo ""
+            echo "Últimas 100 líneas:"
+            tail -100 compilacion.log
+          fi
+
+          echo ""
+          echo "##################################################"
+          echo "#          FIN DEL DIAGNÓSTICO COMPLETO         #"
+          echo "##################################################"
 
       - name: Mostrar APK generado
         if: always()
@@ -226,7 +448,11 @@ jobs:
           echo "======================================"
           echo "APK ENCONTRADOS"
           echo "======================================"
-          find . -type f -name "*.apk" -print || true
+
+          find . \
+            -type f \
+            -name "*.apk" \
+            -print 2>/dev/null || true
 
       - name: Guardar APK
         if: success()
