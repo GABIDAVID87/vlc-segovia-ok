@@ -43,6 +43,11 @@ jobs:
             wget \
             curl
 
+      - name: Configurar Gradle 9.3.1
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "9.3.1"
+
       - name: Configurar Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -50,6 +55,7 @@ jobs:
 
       - name: Instalar Android SDK y NDK
         run: |
+          yes | sdkmanager --licenses >/dev/null || true
           sdkmanager --install \
             "platform-tools" \
             "platforms;android-36" \
@@ -61,6 +67,7 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME"
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
           java -version
+          gradle --version
           sdkmanager --version
           ls -la "$ANDROID_HOME/ndk/21.4.7075529"
 
@@ -69,6 +76,15 @@ jobs:
         run: |
           echo "ANDROID_SDK=$ANDROID_HOME" >> "$GITHUB_ENV"
           echo "ANDROID_NDK=$ANDROID_HOME/ndk/21.4.7075529" >> "$GITHUB_ENV"
+
+      - name: Crear Gradle Wrapper
+        working-directory: vlc-segovia-tv-main
+        run: |
+          gradle wrapper --gradle-version 9.3.1
+          chmod +x gradlew
+          echo "Gradle Wrapper creado:"
+          ls -la gradlew
+          ./gradlew --version
 
       - name: Preparar VLC y LibVLCJNI
         working-directory: vlc-segovia-tv-main
