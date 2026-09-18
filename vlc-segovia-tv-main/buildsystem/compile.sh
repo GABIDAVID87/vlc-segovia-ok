@@ -1,7 +1,6 @@
 #! /bin/sh
 set -e
 
-
 #############
 # FUNCTIONS #
 #############
@@ -23,8 +22,8 @@ fail()
 
 RELEASE=0
 RESET=0
-# Indicates the license of contribs
 AVLC_CONTRIB_LICENSE=g
+
 while [ $# -gt 0 ]; do
     case $1 in
         help|--help|-h)
@@ -123,14 +122,14 @@ while [ $# -gt 0 ]; do
 done
 
 if [ -z "$ANDROID_NDK" ] || [ -z "$ANDROID_SDK" ]; then
-   diagnostic "You must define ANDROID_NDK, ANDROID_SDK before starting."
-   diagnostic "They must point to your NDK and SDK directories."
-   exit 1
+    diagnostic "You must define ANDROID_NDK, ANDROID_SDK before starting."
+    diagnostic "They must point to your NDK and SDK directories."
+    exit 1
 fi
 
 if [ -z "$ANDROID_ABI" ]; then
-   diagnostic "*** No ANDROID_ABI defined architecture: using arm64-v8a"
-   ANDROID_ABI="arm64-v8a"
+    diagnostic "*** No ANDROID_ABI defined architecture: using arm64-v8a"
+    ANDROID_ABI="arm64-v8a"
 elif [ "$ANDROID_ABI" = "arm64" ]; then
     ANDROID_ABI="arm64-v8a"
 elif [ "$ANDROID_ABI" = "arm" ]; then
@@ -160,13 +159,14 @@ else
 fi
 
 if [ -n "$M2_REPO" ]; then
-  if test -d "$M2_REPO"; then
-    echo "Custom local maven repository found"
-  else
-    diagnostic "Invalid local maven repository path: $M2_REPO"
-    exit 1
-  fi
+    if test -d "$M2_REPO"; then
+        echo "Custom local maven repository found"
+    else
+        diagnostic "Invalid local maven repository path: $M2_REPO"
+        exit 1
+    fi
 fi
+
 ####################
 # Configure gradle #
 ####################
@@ -198,70 +198,79 @@ fi
 
 init_local_props() {
     (
-    # initialize the local.properties file,
-    # or fix it if it was modified (by Android Studio, for example).
-    echo_props() {
-        echo "sdk.dir=$ANDROID_SDK"
-        echo "android.ndkPath=$ANDROID_NDK"
-        NDK_FULL_VERSION=$(grep -o '^Pkg.Revision.*[0-9]*.*' $ANDROID_NDK/source.properties |cut -d " " -f 3)
-        echo "android.ndkFullVersion=$NDK_FULL_VERSION"
-        if [ $(command -v cmake) >/dev/null 2>&1 ]; then
-            # prefix of the cmake installation, not the cmake path or the dir that contains the cmake executable
-            echo "cmake.dir=$(dirname $(dirname $(command -v cmake)))"
-        fi
-    }
-    # first check if the file just needs to be created for the first time
-    if [ ! -f "$1" ]; then
-        echo_props > "$1"
-        return 0
-    fi
-    # escape special chars to get regex that matches string
-    make_regex() {
-        echo "$1" | sed -e 's/\([[\^$.*]\)/\\\1/g' -
-    }
-    android_sdk_regex=`make_regex "${ANDROID_SDK}"`
-    android_ndk_regex=`make_regex "${ANDROID_NDK}"`
-    # check for lines setting the SDK directory
-    sdk_line_start="^sdk\.dir="
-    total_sdk_count=`grep -c "${sdk_line_start}" "$1"`
-    good_sdk_count=`grep -c "${sdk_line_start}${android_sdk_regex}\$" "$1"`
-    # check for lines setting the NDK directory
-    ndk_line_start="^android\.ndkPath="
-    total_ndk_count=`grep -c "${ndk_line_start}" "$1"`
-    good_ndk_count=`grep -c "${ndk_line_start}${android_ndk_regex}\$" "$1"`
-    # if one of each is found and both match the environment vars, no action needed
-    if [ "$total_sdk_count" -eq "1" ] && [ "$good_sdk_count" -eq "1" ] \
-    && [ "$total_ndk_count" -eq "1" ] && [ "$good_ndk_count" -eq "1" ]
-    then
-        return 0
-    fi
-    # if neither property is set they can simply be appended to the file
-    if [ "$total_sdk_count" -eq "0" ] && [ "$total_ndk_count" -eq "0" ]; then
-        echo_props >> "$1"
-        return 0
-    fi
-    # if a property is set incorrectly or too many times,
-    # remove all instances of both properties and append correct ones.
-    replace_props() {
-        temp_props="$1.tmp"
-        while IFS= read -r LINE || [ -n "$LINE" ]; do
-            line_sdk_dir="${LINE#sdk.dir=}"
-            line_ndk_dir="${LINE#android.ndkPath=}"
-            line_ndk_version="${LINE#android.ndkFullVersion=}"
-            line_cmake_dir="${LINE#cmake.dir=}"
-            if [ "x$line_sdk_dir" = "x$LINE" ] && [ "x$line_ndk_dir" = "x$LINE" ] && [ "x$line_ndk_version" = "x$LINE" ] && [ "x$line_cmake_dir" = "x$LINE" ]; then
-                echo "$LINE"
+        echo_props() {
+            echo "sdk.dir=$ANDROID_SDK"
+            echo "android.ndkPath=$ANDROID_NDK"
+            NDK_FULL_VERSION=$(grep -o '^Pkg.Revision.*[0-9]*.*' "$ANDROID_NDK/source.properties" | cut -d " " -f 3)
+            echo "android.ndkFullVersion=$NDK_FULL_VERSION"
+
+            if [ $(command -v cmake) >/dev/null 2>&1 ]; then
+                echo "cmake.dir=$(dirname $(dirname $(command -v cmake)))"
             fi
-        done <"$1" >"$temp_props"
-        echo_props >> "$temp_props"
-        mv -f -- "$temp_props" "$1"
-    }
-    echo "local.properties: Contains incompatible sdk.dir and/or android.ndkPath properties. Replacing..."
-    replace_props "$1"
-    echo "local.properties: Finished replacing sdk.dir and/or android.ndkPath with current environment variables."
+        }
+
+        if [ ! -f "$1" ]; then
+            echo_props > "$1"
+            return 0
+        fi
+
+        make_regex() {
+            echo "$1" | sed -e 's/\([[\^$.*]\)/\\\1/g' -
+        }
+
+        android_sdk_regex=`make_regex "${ANDROID_SDK}"`
+        android_ndk_regex=`make_regex "${ANDROID_NDK}"`
+
+        sdk_line_start="^sdk\.dir="
+        total_sdk_count=`grep -c "${sdk_line_start}" "$1"`
+        good_sdk_count=`grep -c "${sdk_line_start}${android_sdk_regex}\$" "$1"`
+
+        ndk_line_start="^android\.ndkPath="
+        total_ndk_count=`grep -c "${ndk_line_start}" "$1"`
+        good_ndk_count=`grep -c "${ndk_line_start}${android_ndk_regex}\$" "$1"`
+
+        if [ "$total_sdk_count" -eq "1" ] && [ "$good_sdk_count" -eq "1" ] \
+        && [ "$total_ndk_count" -eq "1" ] && [ "$good_ndk_count" -eq "1" ]
+        then
+            return 0
+        fi
+
+        if [ "$total_sdk_count" -eq "0" ] && [ "$total_ndk_count" -eq "0" ]; then
+            echo_props >> "$1"
+            return 0
+        fi
+
+        replace_props() {
+            temp_props="$1.tmp"
+
+            while IFS= read -r LINE || [ -n "$LINE" ]; do
+                line_sdk_dir="${LINE#sdk.dir=}"
+                line_ndk_dir="${LINE#android.ndkPath=}"
+                line_ndk_version="${LINE#android.ndkFullVersion=}"
+                line_cmake_dir="${LINE#cmake.dir=}"
+
+                if [ "x$line_sdk_dir" = "x$LINE" ] && \
+                   [ "x$line_ndk_dir" = "x$LINE" ] && \
+                   [ "x$line_ndk_version" = "x$LINE" ] && \
+                   [ "x$line_cmake_dir" = "x$LINE" ]; then
+                    echo "$LINE"
+                fi
+            done < "$1" > "$temp_props"
+
+            echo_props >> "$temp_props"
+            mv -f -- "$temp_props" "$1"
+        }
+
+        echo "local.properties: Contains incompatible sdk.dir and/or android.ndkPath properties. Replacing..."
+        replace_props "$1"
+        echo "local.properties: Finished replacing sdk.dir and/or android.ndkPath with current environment variables."
     )
 }
-init_local_props local.properties || { echo "Error initializing local.properties"; exit $?; }
+
+init_local_props local.properties || {
+    echo "Error initializing local.properties"
+    exit $?
+}
 
 if [ ! -d "$ANDROID_SDK/licenses" ]; then
     mkdir "$ANDROID_SDK/licenses"
@@ -278,7 +287,6 @@ fi
 # Fetch libVLCjni source #
 ####################
 
-
 if [ "$FORCE_VLC_4" = 1 ]; then
     LIBVLCJNI_TESTED_HASH=a8d53a9151d7e4a9a5dfd0a5eb1cd92669afdc21
     LIBVLCJNI_BRANCH="master"
@@ -286,23 +294,31 @@ else
     LIBVLCJNI_TESTED_HASH=81bb02ba48dcad32550e0626139a387b3c30af04
     LIBVLCJNI_BRANCH="libvlcjni-3.x"
 fi
+
 LIBVLCJNI_REPOSITORY=https://code.videolan.org/videolan/libvlcjni.git
 
 : ${VLC_LIBJNI_PATH:="$(pwd -P)/libvlcjni"}
 
 if [ ! -d "$VLC_LIBJNI_PATH" ] || [ ! -d "$VLC_LIBJNI_PATH/.git" ]; then
     diagnostic "libvlcjni sources: not found, cloning"
+
     if [ ! -d "$VLC_LIBJNI_PATH" ]; then
         git clone --single-branch --branch ${LIBVLCJNI_BRANCH} "${LIBVLCJNI_REPOSITORY}"
         cd libvlcjni
-    else # folder exist with only the artifacts
+    else
         cd libvlcjni
         git init
         git remote add origin "${LIBVLCJNI_REPOSITORY}"
         git pull origin ${LIBVLCJNI_BRANCH}
     fi
+
     git reset --hard ${LIBVLCJNI_TESTED_HASH} || fail "libvlcjni sources: LIBVLCJNI_TESTED_HASH ${LIBVLCJNI_TESTED_HASH} not found"
-    init_local_props local.properties || { echo "Error initializing local.properties"; exit $?; }
+
+    init_local_props local.properties || {
+        echo "Error initializing local.properties"
+        exit $?
+    }
+
     cd ..
 fi
 
@@ -311,6 +327,7 @@ fi
 ##########
 
 GRADLE_VERSION=9.3.1
+
 # the SHA256 is found in https://gradle.org/release-checksums/
 GRADLE_SHA256=b266d5ff6b90eada6dc3b20cb090e3731302e553a27c5d3e4df1f0d76beaff06
 GRADLE_URL=https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip
@@ -318,21 +335,33 @@ GRADLE_DOWNLOADED_ZIP=gradle-${GRADLE_VERSION}-bin.zip
 
 if [ -e "./gradlew" ] && [ -x "./gradlew" ]; then
     GRADLE_CACHED_VERSION=$(./gradlew -q 2>/dev/null | grep gradle_version= | cut -b 16-)
-    if [ "$GRADLE_PATH_VERSION" != "$GRADLE_VERSION" ]; then
-        diagnostic "gradlew version $GRADLE_PATH_VERSION not matching $GRADLE_VERSION"
+
+    if [ "$GRADLE_CACHED_VERSION" != "$GRADLE_VERSION" ]; then
+        diagnostic "gradlew version $GRADLE_CACHED_VERSION not matching $GRADLE_VERSION"
         rm -rf "./gradlew"
     fi
 fi
+
 if [ ! -e "./gradlew" ] || [ ! -x "./gradlew" ]; then
     diagnostic "gradlew not found"
+
     export PATH="$(pwd -P)/gradle-${GRADLE_VERSION}/bin:$PATH"
+
     GRADLE_PATH_VERSION=$(cd buildsystem/gradle_version; gradle -q 2>/dev/null | grep gradle_version= | cut -b 16-)
+
     if [ "$GRADLE_PATH_VERSION" != "$GRADLE_VERSION" ]; then
         diagnostic "gradle could not be found in PATH, downloading"
-        wget ${GRADLE_URL} -O ${GRADLE_DOWNLOADED_ZIP}  2>/dev/null || curl -LO ${GRADLE_URL} || fail "gradle: download failed"
-        echo $GRADLE_SHA256 ${GRADLE_DOWNLOADED_ZIP} | sha256sum -c || fail "gradle: hash mismatch"
 
-        unzip -o ${GRADLE_DOWNLOADED_ZIP} || fail "gradle: unzip failed"
+        wget ${GRADLE_URL} -O ${GRADLE_DOWNLOADED_ZIP} 2>/dev/null || \
+        curl -LO ${GRADLE_URL} || \
+        fail "gradle: download failed"
+
+        echo $GRADLE_SHA256 ${GRADLE_DOWNLOADED_ZIP} | sha256sum -c || \
+        fail "gradle: hash mismatch"
+
+        unzip -o ${GRADLE_DOWNLOADED_ZIP} || \
+        fail "gradle: unzip failed"
+
         rm -rf ${GRADLE_DOWNLOADED_ZIP}
     fi
 
@@ -340,18 +369,20 @@ if [ ! -e "./gradlew" ] || [ ! -x "./gradlew" ]; then
 
     chmod a+x gradlew
 fi
+
 ./gradlew -version || fail "gradle: wrapper failed"
 
 ####################
 # Fetch VLC source #
 ####################
 
-# If you want to use an existing vlc dir add its path to an VLC_SRC_DIR env var
 if [ -z "$VLC_SRC_DIR" ]; then
     get_vlc_args=
+
     if [ "$BYPASS_VLC_SRC_CHECKS" = 1 ]; then
         get_vlc_args="${get_vlc_args} -b"
     fi
+
     if [ $RESET -eq 1 ]; then
         get_vlc_args="${get_vlc_args} --reset"
     fi
@@ -359,8 +390,6 @@ if [ -z "$VLC_SRC_DIR" ]; then
     (cd ${VLC_LIBJNI_PATH} && ./buildsystem/get-vlc.sh ${get_vlc_args})
 fi
 
-# Always clone VLC when using --init since we'll need to package some files
-# during the final assembly (lua/hrtfs/..)
 if [ "$GRADLE_SETUP" = 1 ]; then
     exit 0
 fi
@@ -368,47 +397,63 @@ fi
 ############
 # Make VLC #
 ############
+
 diagnostic "Configuring"
 
 if [ "$AVLC_STATIC_CXX" = 1 ]; then
     CONFIG_ARGS="$CONFIG_ARGS --static-cpp"
 fi
 
-# Build LibVLC if asked for it, or needed by medialibrary
 OUT_DBG_DIR="$(pwd -P)/.dbg/${ANDROID_ABI}"
 mkdir -p $OUT_DBG_DIR
 
 if [ "$BUILD_MEDIALIB" != 1 ] || [ ! -d "${VLC_LIBJNI_PATH}/libvlc/jni/libs/" ]; then
-    if [ "$PREBUILT_CONTRIBS" = 1 ];then
+
+    if [ "$PREBUILT_CONTRIBS" = 1 ]; then
         VLC_CONTRIB_SHA="$(cd ${VLC_LIBJNI_PATH}/vlc && extras/ci/get-contrib-sha.sh android-${ARCH})"
+
         if [ "$FORCE_VLC_4" = 1 ]; then
             export VLC_PREBUILT_CONTRIBS_URL="https://artifacts.videolan.org/vlc/android-${ARCH}/vlc-contrib-${TRIPLET}-${VLC_CONTRIB_SHA}.tar.bz2"
         else
             export VLC_PREBUILT_CONTRIBS_URL="https://artifacts.videolan.org/vlc-3.0/android-${ARCH}/vlc-contrib-${TRIPLET}-${VLC_CONTRIB_SHA}.tar.bz2"
         fi
-        if ${VLC_LIBJNI_PATH}/vlc/extras/ci/check-url.sh "$VLC_PREBUILT_CONTRIBS_URL"; then CONTRIB_FLAGS="--with-prebuilt-contribs"; fi
+
+        if ${VLC_LIBJNI_PATH}/vlc/extras/ci/check-url.sh "$VLC_PREBUILT_CONTRIBS_URL"; then
+            CONTRIB_FLAGS="--with-prebuilt-contribs"
+        fi
     fi
-    ${VLC_LIBJNI_PATH}/buildsystem/compile-libvlc.sh -a ${ARCH} ${CONTRIB_FLAGS} ${CONFIG_ARGS} --license $AVLC_CONTRIB_LICENSE
+
+    ${VLC_LIBJNI_PATH}/buildsystem/compile-libvlc.sh \
+        -a ${ARCH} \
+        ${CONTRIB_FLAGS} \
+        ${CONFIG_ARGS} \
+        --license $AVLC_CONTRIB_LICENSE
 
     cp -a ${VLC_LIBJNI_PATH}/libvlc/jni/obj/local/${ANDROID_ABI}/*.so "${OUT_DBG_DIR}"
 fi
 
 if [ "$NO_ML" != 1 ]; then
     medialig_args="-a $ANDROID_ABI $CONFIG_ARGS"
+
     if [ "$RELEASE" = 1 ]; then
         medialig_args="$medialig_args --release"
     fi
+
     if [ "$RESET" = 1 ]; then
         medialig_args="$medialig_args --reset"
     fi
+
     buildsystem/compile-medialibrary.sh ${medialig_args}
+
     cp -a medialibrary/jni/libs/${ANDROID_ABI}/*.so "${OUT_DBG_DIR}"
 fi
 
 ##################
 # Compile the UI #
 ##################
+
 BUILDTYPE="Dev"
+
 if [ "$TEST" = 1 ]; then
     BUILDTYPE="Debug"
 elif [ "$SIGNED_RELEASE" = 1 ]; then
@@ -416,50 +461,76 @@ elif [ "$SIGNED_RELEASE" = 1 ]; then
 elif [ "$RELEASE" = 1 ]; then
     BUILDTYPE="Release"
 fi
+
 if [ "$TEST" = 1 ] || [ "$RUN" = 1 ]; then
     ACTION="install"
 else
     ACTION="assemble"
 fi
+
 GRADLE_TASK="${ACTION}${BUILDTYPE}"
 
 if [ -n "$M2_REPO" ]; then
     gradle_prop="$gradle_prop -Dmaven.repo.local=$M2_REPO"
 fi
 
-if [ "$BUILD_LIBVLC" = 1 ];then
-    GRADLE_ABI=$GRADLE_ABI ./gradlew ${gradle_prop} --project-dir ${VLC_LIBJNI_PATH}/libvlc $GRADLE_TASK
+if [ "$BUILD_LIBVLC" = 1 ]; then
+
+    GRADLE_ABI=$GRADLE_ABI ./gradlew \
+        ${gradle_prop} \
+        --project-dir ${VLC_LIBJNI_PATH}/libvlc \
+        $GRADLE_TASK
+
     RUN=0
+
 elif [ "$BUILD_MEDIALIB" = 1 ]; then
+
     gradle_prop="$gradle_prop -PvlcLibVariant=$GRADLE_ABI"
-    ./gradlew ${gradle_prop} --project-dir medialibrary $GRADLE_TASK
+
+    ./gradlew \
+        ${gradle_prop} \
+        --project-dir medialibrary \
+        $GRADLE_TASK
+
     RUN=0
+
 else
+
     ./gradlew ${gradle_prop} $GRADLE_TASK
+
     if [ "$BUILDTYPE" = "Release" ] && [ "$ACTION" = "assemble" ]; then
         ./gradlew ${gradle_prop} "bundle${BUILDTYPE}"
     fi
+
     if [ "$TEST" = 1 ]; then
-        ./gradlew ${gradle_prop} "application:vlc-android:install${BUILDTYPE}AndroidTest"
+
+        ./gradlew \
+            ${gradle_prop} \
+            "application:vlc-android:install${BUILDTYPE}AndroidTest"
 
         echo -e "\n===================================\nRun following for UI tests:"
-        echo "adb shell am instrument -w -m -e clearPackageData true   -e package org.videolan.vlc -e debug false org.videolan.vlc.debug.test/org.videolan.vlc.MultidexTestRunner 1> result_UI_test.txt"
+        echo "adb shell am instrument -w -m -e clearPackageData true -e package org.videolan.vlc -e debug false org.videolan.vlc.debug.test/org.videolan.vlc.MultidexTestRunner 1> result_UI_test.txt"
     fi
 fi
 
-if [ ! -d "./application/remote-access-client/remoteaccess/dist" ] ; then
+if [ ! -d "./application/remote-access-client/remoteaccess/dist" ]; then
     echo "\033[1;32mWARNING: This was built without the remote access at ./remoteaccess/dist ...\033[0m"
 fi
 
 #######
 # RUN #
 #######
+
 if [ "$RUN" = 1 ]; then
+
     export PATH="${ANDROID_SDK}/platform-tools/:$PATH"
+
     if [ "$STUB" = 1 ]; then
         EXTRA="--ez 'extra_test_stubs' true"
     fi
+
     adb wait-for-device
+
     if [ "$RELEASE" = 1 ]; then
         adb shell am start -n org.videolan.vlc/org.videolan.vlc.StartActivity $EXTRA
     else
