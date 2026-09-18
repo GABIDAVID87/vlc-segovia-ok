@@ -110,6 +110,10 @@ jobs:
         working-directory: vlc-segovia-tv-main
         run: |
           chmod +x buildsystem/compile.sh
+          find buildsystem -type f -name "*.sh" -exec chmod +x {} \;
+
+          echo "Scripts ejecutables:"
+          find buildsystem -type f -name "*.sh" -print
 
       - name: Descargar y preparar VLC
         working-directory: vlc-segovia-tv-main
@@ -434,6 +438,28 @@ jobs:
             echo ""
             echo "Últimas 100 líneas:"
             tail -100 compilacion.log
+          fi
+
+          echo ""
+          echo "=================================================="
+          echo "15. VERIFICACIÓN DE PERMISOS DE SCRIPTS"
+          echo "=================================================="
+
+          echo ""
+          echo "Scripts del buildsystem:"
+          find buildsystem \
+            -type f \
+            -name "*.sh" \
+            -exec ls -l {} \; \
+            2>/dev/null || true
+
+          echo ""
+          echo "Permiso específico de compile-medialibrary.sh:"
+          if [ -f buildsystem/compile-medialibrary.sh ]; then
+            ls -l buildsystem/compile-medialibrary.sh
+            file buildsystem/compile-medialibrary.sh
+          else
+            echo "No existe buildsystem/compile-medialibrary.sh"
           fi
 
           echo ""
