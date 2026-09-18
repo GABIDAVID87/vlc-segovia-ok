@@ -82,47 +82,19 @@ jobs:
           echo "ANDROID_SDK=$ANDROID_HOME" >> "$GITHUB_ENV"
           echo "ANDROID_NDK=$ANDROID_HOME/ndk/21.4.7075529" >> "$GITHUB_ENV"
 
-      - name: Crear Gradle Wrapper sin evaluar VLC
-        run: |
-          rm -rf /tmp/gradle-wrapper
-          mkdir -p /tmp/gradle-wrapper
-
-          cd /tmp/gradle-wrapper
-
-          printf "rootProject.name='wrapper-generator'\n" > settings.gradle
-          printf "tasks.register('dummy')\n" > build.gradle
-
-          gradle wrapper --gradle-version 9.3.1
-
-          cd "$GITHUB_WORKSPACE/vlc-segovia-tv-main"
-
-          cp /tmp/gradle-wrapper/gradlew .
-          cp /tmp/gradle-wrapper/gradlew.bat .
-
-          mkdir -p gradle/wrapper
-
-          cp /tmp/gradle-wrapper/gradle/wrapper/gradle-wrapper.jar \
-            gradle/wrapper/
-
-          cp /tmp/gradle-wrapper/gradle/wrapper/gradle-wrapper.properties \
-            gradle/wrapper/
-
-          chmod +x gradlew
-
-          echo "Gradle Wrapper preparado:"
-          ls -la gradlew
-          ls -la gradle/wrapper/
-
-      - name: Preparar VLC y LibVLCJNI
+      - name: Preparar verificador de versión de Gradle
         working-directory: vlc-segovia-tv-main
         run: |
-          chmod +x buildsystem/compile.sh
+          mkdir -p buildsystem/gradle_version
 
-          ANDROID_SDK="$ANDROID_HOME" \
-          ANDROID_NDK="$ANDROID_HOME/ndk/21.4.7075529" \
-          ./buildsystem/compile.sh --init -b
+          printf "%s\n" \
+            "println 'gradle_version=' + gradle.getGradleVersion()" \
+            > buildsystem/gradle_version/build.gradle
 
-      - name: Compilar Segovia TV + VLC
+          echo "Verificador Gradle creado:"
+          cat buildsystem/gradle_version/build.gradle
+
+      - name: Preparar VLC y compilar
         working-directory: vlc-segovia-tv-main
         run: |
           chmod +x buildsystem/compile.sh
